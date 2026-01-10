@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Monitor</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div id="app" class="flex h-screen overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-16 lg:w-52 bg-[#0a0a0f] border-r border-[#27272a] flex flex-col">
+      <div class="h-14 flex items-center justify-center lg:justify-start lg:px-4 border-b border-[#27272a]">
+        <svg class="w-6 h-6 text-[#00ff41]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path></svg>
+        <span class="hidden lg:block ml-2 text-[#00ff41] font-bold text-sm tracking-wider">SYSMON</span>
+      </div>
+      <nav class="flex-1 py-4 space-y-1">
+        <div class="nav-link active" onclick="showPage('dashboard')">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+          <span class="hidden lg:block ml-3 text-xs">Dashboard</span>
+        </div>
+        <div class="nav-link" onclick="showPage('processes')">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+          <span class="hidden lg:block ml-3 text-xs">Processes</span>
+        </div>
+        <div class="nav-link" onclick="showPage('network')">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+          <span class="hidden lg:block ml-3 text-xs">Network</span>
+        </div>
+        <div class="nav-link" onclick="showPage('storage')">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path></svg>
+          <span class="hidden lg:block ml-3 text-xs">Storage</span>
+        </div>
+        <div class="nav-link" onclick="showPage('ble')">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.6161,2.21201 L18.4934,6.62001 C19.0801,7.06002 19.0801,7.94002 18.4934,8.38001 L13.6667,12 L18.4934,15.62 C19.0801,16.06 19.0801,16.94 18.4934,17.38 L12.6161,21.788 C11.9501,22.2875 11.0001,21.8122 11.0001,20.98 L11.0001,14 L6.60006,17.3 C6.15823,17.6314 5.53143,17.5418 5.20006,17.1 C4.86869,16.6582 4.95823,16.0314 5.40006,15.7 L10.3334,12 L5.40006,8.30001 C4.95823,7.96864 4.86869,7.34184 5.20006,6.90001 C5.53143,6.45819 6.15823,6.36864 6.60006,6.70001 L11.0001,10 L11.0001,3.02001 C11.0001,2.18775 11.9502,1.71263 12.6161,2.21201 Z M13.0001,14 L13.0001,19 L16.3334,16.5 L13.0001,14 Z M13.0001,5.00001 L13.0001,10.00001 L16.3334,7.50001 L13.0001,5.00001 Z"/></svg>
+          <span class="hidden lg:block ml-3 text-xs">Bluetooth</span>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col overflow-hidden">
+      <!-- Header -->
+      <header class="h-14 bg-[#0a0a0f]/90 backdrop-blur border-b border-[#27272a] flex items-center justify-between px-4">
+        <div class="flex items-center gap-2">
+          <div class="w-2 h-2 rounded-full bg-[#00ff41] animate-pulse"></div>
+          <span class="text-xs text-[#a1a1aa]">Real-time System Monitor</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <div id="connStatus" class="flex items-center gap-1.5 text-[#ff3366]">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414"></path></svg>
+            <span class="text-[10px]">OFFLINE</span>
+          </div>
+          <div id="clock" class="text-[10px] text-[#a1a1aa]"></div>
+        </div>
+      </header>
+
+      <!-- Content Area -->
+      <main class="flex-1 overflow-auto p-4 grid-bg">
+        <!-- Dashboard Page -->
+        <div id="page-dashboard" class="page">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h1 class="text-lg font-bold text-[#e4e4e7]">System Dashboard</h1>
+              <p id="systemInfo" class="text-xs text-[#71717a]">Loading...</p>
+            </div>
+            <div class="text-right text-xs">
+              <div class="text-[#a1a1aa]">Uptime</div>
+              <div id="uptime" class="text-[#00ff41] font-mono">-</div>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 mb-4">
+            <!-- CPU Widget -->
+            <div class="cyber-card p-4">
+              <div class="flex items-center gap-2 mb-3">
+                <svg class="w-4 h-4 text-[#00ff41]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
+                <span class="text-xs text-[#e4e4e7] font-medium">CPU</span>
+                <span id="cpuFreq" class="ml-auto text-[10px] text-[#00d4ff]">-</span>
+              </div>
+              <div id="cpuGauge" class="flex justify-center mb-3"></div>
+              <div id="cpuCores" class="grid grid-cols-4 gap-2"></div>
+            </div>
+            <!-- GPU Widget -->
+            <div class="cyber-card p-4">
+              <div class="flex items-center gap-2 mb-3">
+                <svg class="w-4 h-4 text-[#ff00ff]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                <span id="gpuName" class="text-xs text-[#e4e4e7] font-medium truncate">GPU</span>
+              </div>
+              <div id="gpuContent">
+                <div id="gpuGauge" class="flex justify-center mb-3"></div>
+                <div class="space-y-2 text-[10px]">
+                  <div class="flex justify-between text-[#a1a1aa]"><span>VRAM</span><span id="gpuVram" class="text-[#e4e4e7]">-</span></div>
+                  <div class="progress-bar"><div id="gpuVramBar" class="progress-fill bg-[#ff00ff]" style="width:0%"></div></div>
+                  <div class="flex justify-between items-center pt-1">
+                    <span class="text-[#a1a1aa]">Temp</span>
+                    <span id="gpuTemp" class="gpu-temp cool">-</span>
+                  </div>
+                </div>
+              </div>
+              <div id="gpuNoDevice" class="hidden text-center py-8">
+                <svg class="w-8 h-8 mx-auto text-[#71717a] mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                <p class="text-[10px] text-[#71717a]">No GPU detected</p>
+              </div>
+            </div>
+            <!-- Memory Widget -->
+            <div class="cyber-card p-4">
+              <div class="flex items-center gap-2 mb-3">
+                <svg class="w-4 h-4 text-[#00d4ff]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                <span class="text-xs text-[#e4e4e7] font-medium">MEMORY</span>
+              </div>
+              <div id="memGauge" class="flex justify-center mb-3"></div>
+              <div class="space-y-2 text-[10px]">
+                <div class="flex justify-between text-[#a1a1aa]"><span>Used</span><span id="memUsed" class="text-[#e4e4e7]">-</span></div>
+                <div class="mb-1"><span class="text-[#a1a1aa]">SWAP</span></div>
+                <div class="progress-bar"><div id="swapBar" class="progress-fill bg-[#ff00ff]" style="width:0%"></div></div>
+                <div class="flex justify-between text-[#a1a1aa]"><span>Swap</span><span id="swapUsed" class="text-[#e4e4e7]">-</span></div>
+              </div>
+            </div>
+            <!-- Disk Widget -->
+            <div class="cyber-card p-4">
+              <div class="flex items-center gap-2 mb-3">
+                <svg class="w-4 h-4 text-[#ff00ff]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path></svg>
+                <span class="text-xs text-[#e4e4e7] font-medium">STORAGE</span>
+              </div>
+              <div id="diskList" class="space-y-3"></div>
+            </div>
+            <!-- Network Widget -->
+            <div class="cyber-card p-4">
+              <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                  <svg class="w-4 h-4 text-[#ffaa00]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+                  <span class="text-xs text-[#e4e4e7] font-medium">NETWORK</span>
+                </div>
+                <button id="speedTestBtn" onclick="runSpeedTest()" class="text-[10px] text-[#ffaa00] hover:text-[#e4e4e7] border border-[#ffaa00] px-2 py-0.5 rounded hover:bg-[#ffaa00]/10 transition-all">
+                  ⚡ SPEED TEST
+                </button>
+              </div>
+              <!-- Speed Test Result (hidden by default) -->
+              <div id="speedTestResult" class="hidden mb-3 p-2 bg-[#1a1a24] rounded border border-[#27272a]">
+                <div class="text-[10px] text-[#a1a1aa] mb-1">SPEED TEST RESULT</div>
+                <div class="grid grid-cols-3 gap-2 text-center">
+                  <div>
+                    <div id="speedDown" class="text-sm font-bold text-[#00ff41]">--</div>
+                    <div class="text-[9px] text-[#71717a]">↓ MB/s</div>
+                  </div>
+                  <div>
+                    <div id="speedUp" class="text-sm font-bold text-[#00d4ff]">--</div>
+                    <div class="text-[9px] text-[#71717a]">↑ MB/s</div>
+                  </div>
+                  <div>
+                    <div id="speedPing" class="text-sm font-bold text-[#ffaa00]">--</div>
+                    <div class="text-[9px] text-[#71717a]">ms ping</div>
+                  </div>
+                </div>
+                <div id="speedServer" class="text-[9px] text-[#71717a] text-center mt-1"></div>
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div class="text-center">
+                  <svg class="w-5 h-5 mx-auto text-[#00ff41] mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                  <div id="netDown" class="text-lg font-bold text-[#00ff41]">-</div>
+                  <div class="text-[10px] text-[#a1a1aa]">Download</div>
+                  <div id="netDownTotal" class="text-[10px] text-[#71717a] mt-1">-</div>
+                </div>
+                <div class="text-center">
+                  <svg class="w-5 h-5 mx-auto text-[#00d4ff] mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
+                  <div id="netUp" class="text-lg font-bold text-[#00d4ff]">-</div>
+                  <div class="text-[10px] text-[#a1a1aa]">Upload</div>
+                  <div id="netUpTotal" class="text-[10px] text-[#71717a] mt-1">-</div>
+                </div>
+              </div>
+              <div class="mt-3 pt-3 border-t border-[#27272a] grid grid-cols-2 gap-2 text-[10px]">
+                <div class="flex justify-between"><span class="text-[#a1a1aa]">Packets In</span><span id="packetsIn" class="text-[#e4e4e7]">-</span></div>
+                <div class="flex justify-between"><span class="text-[#a1a1aa]">Packets Out</span><span id="packetsOut" class="text-[#e4e4e7]">-</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CPU History Chart & Stats Row -->
+          <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+            <!-- CPU History Chart -->
+            <div class="cyber-card p-4 xl:col-span-2">
+              <div class="flex items-center gap-2 mb-3">
+                <svg class="w-4 h-4 text-[#00ff41]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
+                <span class="text-xs text-[#e4e4e7] font-medium">CPU USAGE HISTORY</span>
+                <span class="ml-auto text-[10px] text-[#71717a]">Last 60 seconds</span>
+              </div>
+              <div id="cpuHistoryChart" style="height: 200px;"></div>
+            </div>
+            <!-- CPU Stats Panel -->
+            <div class="cyber-card p-4">
+              <div class="flex items-center gap-2 mb-3">
+                <svg class="w-4 h-4 text-[#00d4ff]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <span class="text-xs text-[#e4e4e7] font-medium">SYSTEM STATS</span>
+              </div>
+              <div class="space-y-3 text-[11px]">
+                <div class="flex justify-between items-center py-2 border-b border-[#1e1e2a]">
+                  <span class="text-[#a1a1aa]">CPU Speed</span>
+                  <span id="cpuSpeed" class="text-[#00ff41] font-medium">-</span>
+                </div>
+                <div class="flex justify-between items-center py-2 border-b border-[#1e1e2a]">
+                  <span class="text-[#a1a1aa]">Base Speed</span>
+                  <span id="cpuBaseSpeed" class="text-[#e4e4e7]">-</span>
+                </div>
+                <div class="flex justify-between items-center py-2 border-b border-[#1e1e2a]">
+                  <span class="text-[#a1a1aa]">Cores</span>
+                  <span id="cpuCoreCount" class="text-[#e4e4e7]">-</span>
+                </div>
+                <div class="flex justify-between items-center py-2 border-b border-[#1e1e2a]">
+                  <span class="text-[#a1a1aa]">Logical Processors</span>
+                  <span id="cpuLogical" class="text-[#e4e4e7]">-</span>
+                </div>
+                <div class="flex justify-between items-center py-2 border-b border-[#1e1e2a]">
+                  <span class="text-[#a1a1aa]">Processes</span>
+                  <span id="procCount" class="text-[#ffaa00] font-medium">-</span>
+                </div>
+                <div class="flex justify-between items-center py-2 border-b border-[#1e1e2a]">
+                  <span class="text-[#a1a1aa]">Threads</span>
+                  <span id="threadCount" class="text-[#00d4ff] font-medium">-</span>
+                </div>
+                <div class="flex justify-between items-center py-2 border-b border-[#1e1e2a]">
+                  <span class="text-[#a1a1aa]">Context Switches</span>
+                  <span id="ctxSwitches" class="text-[#e4e4e7]">-</span>
+                </div>
+                <div class="flex justify-between items-center py-2">
+                  <span class="text-[#a1a1aa]">Interrupts</span>
+                  <span id="interrupts" class="text-[#e4e4e7]">-</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Processes Page -->
+        <div id="page-processes" class="page hidden">
+          <div class="cyber-card h-full flex flex-col">
+            <div class="p-3 border-b border-[#27272a] flex items-center gap-3">
+              <div class="relative flex-1">
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#71717a]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                <input type="text" id="procSearch" placeholder="Search processes..." class="w-full pl-9 pr-3 py-2 bg-[#1a1a24] border border-[#27272a] rounded text-xs text-[#e4e4e7] focus:border-[#00ff41] focus:outline-none">
+              </div>
+              <select id="procSort" class="bg-[#1a1a24] border border-[#27272a] rounded px-2 py-2 text-xs text-[#e4e4e7] focus:border-[#00ff41] focus:outline-none">
+                <option value="cpu_percent">CPU %</option>
+                <option value="memory_percent">Memory %</option>
+                <option value="name">Name</option>
+              </select>
+            </div>
+            <div class="flex-1 overflow-auto">
+              <table class="cyber-table">
+                <thead><tr><th>PID</th><th>Name</th><th>CPU %</th><th>MEM %</th><th>Memory</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="procTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Network Page -->
+        <div id="page-network" class="page hidden">
+          <!-- Speed Test Card -->
+          <div class="cyber-card p-4 mb-4">
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-[#ffaa00]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                <span class="text-sm text-[#e4e4e7] font-medium">Internet Speed Test</span>
+              </div>
+              <button id="speedTestBtnNetwork" onclick="runSpeedTest()" class="text-xs text-[#ffaa00] hover:text-[#e4e4e7] border border-[#ffaa00] px-3 py-1 rounded hover:bg-[#ffaa00]/10 transition-all">
+                ⚡ RUN SPEED TEST
+              </button>
+            </div>
+            <div id="speedTestResultNetwork" class="hidden">
+              <div class="grid grid-cols-3 gap-4 text-center">
+                <div class="bg-[#1a1a24] rounded-lg p-3">
+                  <div id="speedDownNetwork" class="text-2xl font-bold text-[#00ff41]">--</div>
+                  <div class="text-xs text-[#71717a]">↓ Download MB/s</div>
+                </div>
+                <div class="bg-[#1a1a24] rounded-lg p-3">
+                  <div id="speedUpNetwork" class="text-2xl font-bold text-[#00d4ff]">--</div>
+                  <div class="text-xs text-[#71717a]">↑ Upload MB/s</div>
+                </div>
+                <div class="bg-[#1a1a24] rounded-lg p-3">
+                  <div id="speedPingNetwork" class="text-2xl font-bold text-[#ffaa00]">--</div>
+                  <div class="text-xs text-[#71717a]">Ping ms</div>
+                </div>
+              </div>
+              <div id="speedServerNetwork" class="text-xs text-[#71717a] text-center mt-2"></div>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div class="cyber-card p-4 flex items-center gap-3">
+              <svg class="w-6 h-6 text-[#00ff41]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+              <div><div class="text-xs text-[#a1a1aa]">Download Speed</div><div id="netDownLg" class="text-lg font-bold text-[#00ff41]">-</div></div>
+            </div>
+            <div class="cyber-card p-4 flex items-center gap-3">
+              <svg class="w-6 h-6 text-[#00d4ff]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
+              <div><div class="text-xs text-[#a1a1aa]">Upload Speed</div><div id="netUpLg" class="text-lg font-bold text-[#00d4ff]">-</div></div>
+            </div>
+            <div class="cyber-card p-4"><div class="text-xs text-[#a1a1aa]">Total Received</div><div id="netRecvTotal" class="text-lg font-bold text-[#e4e4e7]">-</div></div>
+            <div class="cyber-card p-4"><div class="text-xs text-[#a1a1aa]">Total Sent</div><div id="netSentTotal" class="text-lg font-bold text-[#e4e4e7]">-</div></div>
+          </div>
+          <div class="cyber-card">
+            <div class="p-3 border-b border-[#27272a]"><span class="text-xs text-[#e4e4e7]">Active Connections (<span id="connCount">0</span>)</span></div>
+            <div class="overflow-auto max-h-[500px]">
+              <table class="cyber-table">
+                <thead><tr><th>Local</th><th>Remote</th><th>Status</th><th>PID</th></tr></thead>
+                <tbody id="connTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Storage Page -->
+        <div id="page-storage" class="page hidden">
+          <h1 class="text-lg font-bold text-[#e4e4e7] mb-4">Storage</h1>
+          
+          <!-- Disk I/O Section -->
+          <div class="cyber-card p-4 mb-4">
+            <div class="flex items-center gap-2 mb-4">
+              <svg class="w-5 h-5 text-[#00ff41]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+              <span class="text-sm text-[#e4e4e7] font-medium">Disk I/O Activity</span>
+              <span class="ml-auto text-[10px] text-[#71717a]">Real-time read/write speeds</span>
+            </div>
+            <div id="diskIoGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+          </div>
+          
+          <!-- Disk Partitions -->
+          <div class="cyber-card p-4">
+            <div class="flex items-center gap-2 mb-4">
+              <svg class="w-5 h-5 text-[#ff00ff]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path></svg>
+              <span class="text-sm text-[#e4e4e7] font-medium">Disk Partitions</span>
+            </div>
+            <div id="storageGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+          </div>
+        </div>
+
+        <!-- BLE Page -->
+        <div id="page-ble" class="page hidden h-full flex flex-col">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-4">
+                     <h1 class="text-lg font-bold text-[#e4e4e7]">Bluetooth Low Energy</h1>
+                    <button onclick="scanDevices()" class="btn btn-ghost border border-[#00ff41] text-[#00ff41] flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        SCAN
+                    </button>
+                    <div id="connection-indicator" class="hidden flex items-center gap-2 px-3 py-1 rounded bg-[rgba(0,255,65,0.1)] border border-[rgba(0,255,65,0.3)]">
+                        <div class="live-indicator"></div>
+                        <span id="connected-device-name" class="text-[#00ff41] text-xs font-bold tracking-wide">CONNECTED</span>
+                    </div>
+                </div>
+                <div id="scan-status" class="text-xs text-[#a1a1aa] animate-pulse hidden">SCANNING...</div>
+            </div>
+
+            <div class="grid lg:grid-cols-12 gap-6 flex-1 min-h-0">
+                <!-- Devices List (4 cols) -->
+                <div class="lg:col-span-4 flex flex-col gap-4 min-h-0">
+                    <div class="cyber-card flex-1 flex flex-col overflow-hidden">
+                        <!-- Header with Tabs -->
+                        <div class="p-3 border-b border-[#27272a] bg-[#1a1a24] flex items-center justify-between">
+                            <h3 class="text-xs font-bold text-[#e4e4e7]">DETECTED SIGNALS</h3>
+                            <div class="flex gap-2">
+                                 <button onclick="switchBLETab('scanner')" id="tab-btn-scanner" class="badge badge-green cursor-pointer hover:bg-[#00ff41]/20">SCAN</button>
+                                 <button onclick="switchBLETab('connections')" id="tab-btn-connections" class="badge badge-cyan cursor-pointer hover:bg-[#00d4ff]/20 bg-transparent">CONNS</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Scanner Tab -->
+                        <div id="ble-tab-scanner" class="flex-1 overflow-auto p-2">
+                             <table class="cyber-table w-full">
+                                <thead>
+                                    <tr class="text-xs text-[#71717a] text-left">
+                                        <th class="p-2">DEVICE</th>
+                                        <th class="p-2 text-center">RSSI</th>
+                                        <th class="p-2 text-center">ACTION</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ble-device-list"></tbody>
+                            </table>
+                        </div>
+
+                        <!-- Connections Tab -->
+                        <div id="ble-tab-connections" class="flex-1 overflow-auto p-2 hidden">
+                            <!-- System Connected Devices -->
+                            <div class="mb-4">
+                                <div class="flex items-center justify-between p-2 border-b border-[#27272a] mb-2">
+                                    <span class="text-[10px] text-[#71717a]">SYSTEM CONNECTIONS</span>
+                                    <div class="flex gap-2">
+                                        <button onclick="fetchBluetoothEventLogs()" class="text-[10px] text-[#9664ff] hover:text-[#e4e4e7] cursor-pointer">📋 EVENT LOG</button>
+                                        <button onclick="updateSystemConnectedList()" class="text-[10px] text-[#00d4ff] hover:text-[#e4e4e7] cursor-pointer">REFRESH</button>
+                                    </div>
+                                </div>
+                                <table class="cyber-table w-full">
+                                    <thead>
+                                        <tr class="text-xs text-[#71717a] text-left">
+                                            <th class="p-2">DEVICE</th>
+                                            <th class="p-2 text-center">STATUS</th>
+                                            <th class="p-2 text-center">SOURCE</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ble-system-conn-list"></tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- App-initiated Connections -->
+                            <div>
+                                <div class="flex items-center justify-between p-2 border-b border-[#27272a] mb-2">
+                                    <span class="text-[10px] text-[#71717a]">APP CONNECTIONS</span>
+                                    <button onclick="updateConnectedList()" class="text-[10px] text-[#00d4ff] hover:text-[#e4e4e7] cursor-pointer">REFRESH</button>
+                                </div>
+                                <table class="cyber-table w-full">
+                                    <thead>
+                                        <tr class="text-xs text-[#71717a] text-left">
+                                            <th class="p-2">DEVICE</th>
+                                            <th class="p-2 text-center">STATUS</th>
+                                            <th class="p-2 text-center">OP</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ble-conn-list"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visualization & Terminal (8 cols) -->
+                <div class="lg:col-span-8 flex flex-col gap-4 min-h-0">
+                    <div class="grid grid-cols-2 gap-4 h-64">
+                         <!-- Gauge -->
+                         <div class="cyber-card p-4 flex flex-col items-center justify-center relative">
+                            <div class="absolute top-3 left-3 text-xs text-[#a1a1aa]">SIGNAL STRENGTH</div>
+                            <div id="rssiGauge"></div>
+                        </div>
+                        <!-- Chart -->
+                        <div class="cyber-card p-4 flex flex-col relative">
+                            <div class="absolute top-3 left-3 text-xs text-[#a1a1aa]">HISTORY</div>
+                            <div class="text-right text-xs text-[#00ff41] font-bold mb-2" id="current-rssi-display"></div>
+                            <div id="rssiChart" class="flex-1"></div>
+                        </div>
+                    </div>
+
+                    <!-- Terminal -->
+                    <div class="cyber-card flex-1 flex flex-col overflow-hidden">
+                        <div class="p-3 border-b border-[#27272a] bg-[#12121a] flex justify-between items-center">
+                            <h3 class="text-xs font-bold text-[#a1a1aa] uppercase tracking-wider">> SYSTEM LOG</h3>
+                            <button onclick="clearBleLog()" class="text-xs text-[#a1a1aa] hover:text-[#e4e4e7]">CLEAR</button>
+                        </div>
+                        <div id="terminal-output" class="flex-1 p-2 font-mono text-xs overflow-auto bg-[#050505] text-[#a1a1aa] space-y-1">
+                            <div class="log-entry"><span class="text-[#00d4ff]">System initialized. Ready.</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Kill Confirmation Modal -->
+  <div id="killModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" style="background: rgba(0,0,0,0.8)">
+    <div class="cyber-card w-full max-w-sm">
+      <div class="flex items-center justify-between p-3 border-b border-[#27272a]">
+        <h2 class="text-sm text-[#00ff41]">Kill Process?</h2>
+        <button onclick="closeKillModal()" class="text-[#a1a1aa] hover:text-[#ff3366] text-lg">&times;</button>
+      </div>
+      <div class="p-3">
+        <p class="text-xs text-[#a1a1aa] mb-4">Terminate <span id="killProcName" class="text-[#ff3366]"></span> (PID: <span id="killProcPid"></span>)?</p>
+        <div class="flex gap-2 justify-end">
+          <button onclick="closeKillModal()" class="btn btn-ghost">Cancel</button>
+          <button onclick="confirmKill()" class="btn btn-danger">Kill</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
