@@ -325,6 +325,67 @@
             <div id="diskIoGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
           </div>
           
+          <!-- Temp File Cleanup -->
+          <div class="cyber-card p-4 mb-4">
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-[#ff3366]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                <span class="text-sm text-[#e4e4e7] font-medium">Temporary Files Cleanup</span>
+              </div>
+              <button id="cleanupTempBtn" onclick="cleanupTempFiles()" class="text-xs text-[#ff3366] hover:text-[#e4e4e7] border border-[#ff3366] px-3 py-1 rounded hover:bg-[#ff3366]/10 transition-all">
+                &#128465; CLEAR TEMP FILES
+              </button>
+            </div>
+            <div class="text-xs text-[#71717a] mb-2">
+              Clears temporary files, cache, and other unnecessary data from system directories.
+            </div>
+            <div id="cleanupResults" class="hidden">
+              <div class="bg-[#1a1a24] rounded-lg p-4 border border-[#27272a] relative">
+                <button onclick="document.getElementById('cleanupResults').classList.add('hidden')" class="absolute top-2 right-2 text-[#71717a] hover:text-[#e4e4e7] text-lg">&times;</button>
+                
+                <!-- Main Results Summary -->
+                <div class="mb-4">
+                  <div class="text-center mb-3">
+                    <div id="sizeFreed" class="text-3xl font-bold text-[#00ff41] mb-1">--</div>
+                    <div class="text-sm text-[#71717a]">Total Space Freed</div>
+                  </div>
+                </div>
+                
+                <!-- Detailed Stats -->
+                <div class="grid grid-cols-3 gap-4 text-center mb-4">
+                  <div>
+                    <div id="filesDeleted" class="text-lg font-bold text-[#00d4ff]">--</div>
+                    <div class="text-[10px] text-[#71717a]">Files Deleted</div>
+                  </div>
+                  <div>
+                    <div id="dirsProcessed" class="text-lg font-bold text-[#ffaa00]">--</div>
+                    <div class="text-[10px] text-[#71717a]">Directories</div>
+                  </div>
+                  <div>
+                    <div id="cleanupStatus" class="text-lg font-bold text-[#ff00ff]">--</div>
+                    <div class="text-[10px] text-[#71717a]">Status</div>
+                  </div>
+                </div>
+                
+                <!-- Errors Section -->
+                <div id="cleanupErrors" class="hidden">
+                  <div class="bg-[#2a1a1a] rounded p-3 border border-[#ff3366]/30">
+                    <div class="text-sm text-[#ff3366] mb-2 font-medium">Issues Encountered:</div>
+                    <div id="errorsList" class="text-xs text-[#a1a1aa] max-h-32 overflow-y-auto space-y-1"></div>
+                    <div class="text-[10px] text-[#71717a] mt-2 italic">These files/folders were likely in use and couldn't be deleted.</div>
+                  </div>
+                </div>
+                
+                <!-- Success Message -->
+                <div id="successMessage" class="hidden">
+                  <div class="bg-[#1a2a1a] rounded p-2 border border-[#00ff41]/30 text-center">
+                    <div class="text-sm text-[#00ff41]">✓ Cleanup completed successfully!</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
           <!-- Disk Partitions -->
           <div class="cyber-card p-4">
             <div class="flex items-center gap-2 mb-4">

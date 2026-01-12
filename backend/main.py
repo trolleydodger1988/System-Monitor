@@ -4,6 +4,9 @@ import time
 import random
 import logging
 import sys
+import os
+import shutil
+from pathlib import Path
 from typing import List, Dict
 
 # Set CoInitialize flags to MTA (Multi Threaded Apartment) to satisfy Bleak requirements
@@ -671,6 +674,127 @@ def disks():
 @app.get("/api/disk-io")
 def disk_io():
     return get_disk_io()
+
+
+def clear_temp_files() -> Dict[str, any]:
+    """
+    Clear temporary files from common Windows temp directories.
+    
+    Returns:
+        dict: Results of the cleanup operation including files deleted and errors.
+    """
+    temp_directories = [
+        Path(r"C:\Users\harritx9\AppData\Local\Temp"),
+        Path(r"C:\Windows\Temp"),
+        Path(r"C:\Temp"),
+        Path(r"C:\Users\harritx9\AppData\Local\Microsoft\Windows\INetCache"),
+        Path(r"C:\Users\harritx9\AppData\Local\CrashDumps"),
+        Path(r"C:\Users\harritx9\AppData\Local\Microsoft\Windows\WebCache"),
+        Path(r"C:\Users\harritx9\AppData\Local\Google\Chrome\User Data\Default\Cache"),
+        Path(r"C:\Users\harritx9\AppData\Local\Microsoft\Edge\User Data\Default\Cache"),
+        Path(r"C:\Users\harritx9\AppData\Local\pip\cache"),
+        Path(r"C:\Users\harritx9\AppData\Roaming\Code\CachedExtensionVSIXs"),
+        Path(r"C:\Windows\SoftwareDistribution\Download"),
+    ]
+    
+    results = {
+        "success": True,
+        "total_deleted": 0,
+        "total_size_freed": 0,
+        "directories_processed": 0,
+        "errors": [],
+        "details": []
+    }
+    
+    for temp_dir in temp_directories:
+        try:
+            if not temp_dir.exists():
+                results["details"].append({
+                    "directory": str(temp_dir),
+                    "status": "skipped",
+                    "reason": "Directory does not exist",
+                    "files_deleted": 0,
+                    "size_freed": 0
+                })
+                continue
+            
+            files_deleted = 0
+            size_freed = 0
+            
+            # Get total size before cleanup
+            for item in temp_dir.iterdir():
+                try:
+                    if item.is_file():
+                        size_freed += item.stat().st_size
+                        item.unlink()
+                        files_deleted += 1
+                    elif item.is_dir():
+                        # Calculate directory size before removal
+                        for sub_item in item.rglob('*'):
+                            if sub_item.is_file():
+                                try:
+                                    size_freed += sub_item.stat().st_size
+                                except (OSError, PermissionError):
+                                    pass
+                        shutil.rmtree(item, ignore_errors=True)
+                        files_deleted += 1
+                except (PermissionError, FileNotFoundError, OSError) as e:
+                    # Some files might be in use, log but continue
+                    results["errors"].append(f"Could not delete {item}: {str(e)}")
+            
+            results["details"].append({
+                "directory": str(temp_dir),
+                "status": "completed",
+                "files_deleted": files_deleted,
+                "size_freed": size_freed
+            })
+            
+            results["total_deleted"] += files_deleted
+            results["total_size_freed"] += size_freed
+            results["directories_processed"] += 1
+            
+        except Exception as e:
+            error_msg = f"Error processing {temp_dir}: {str(e)}"
+            results["errors"].append(error_msg)
+            results["details"].append({
+                "directory": str(temp_dir),
+                "status": "error",
+                "reason": str(e),
+                "files_deleted": 0,
+                "size_freed": 0
+            })
+            logger.error(error_msg)
+    
+    if results["errors"]:
+        results["success"] = len(results["errors"]) < len(temp_directories)
+    
+    return results
+
+
+@app.post("/api/cleanup/temp-files")
+def cleanup_temp_files():
+    """
+    API endpoint to clear temporary files.
+    
+    Returns:
+        dict: Results of the cleanup operation.
+    """
+    try:
+        results = clear_temp_files()
+        logger.info(f"Temp cleanup completed: {results['total_deleted']} files, {results['total_size_freed']} bytes freed")
+        return results
+    except Exception as e:
+        error_msg = f"Temp file cleanup failed: {str(e)}"
+        logger.error(error_msg)
+        return {
+            "success": False,
+            "error": error_msg,
+            "total_deleted": 0,
+            "total_size_freed": 0,
+            "directories_processed": 0,
+            "errors": [error_msg],
+            "details": []
+        }
 
 
 ws_connections = []

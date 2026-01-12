@@ -275,6 +275,95 @@ function renderStoragePage() {
   `).join('');
 }
 
+// Temp File Cleanup
+let cleanupRunning = false;
+
+async function cleanupTempFiles() {
+    if (cleanupRunning) return;
+    
+    cleanupRunning = true;
+    const btn = document.getElementById('cleanupTempBtn');
+    const resultsDiv = document.getElementById('cleanupResults');
+    
+    // Update button state
+    btn.innerHTML = '&#8987; CLEANING...';
+    btn.disabled = true;
+    btn.classList.add('opacity-50', 'cursor-not-allowed');
+    
+    try {
+        const response = await fetch('/api/cleanup/temp-files', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const result = await response.json();
+        
+        // Show results
+        resultsDiv.classList.remove('hidden');
+        
+        // Update result stats
+        document.getElementById('filesDeleted').textContent = result.total_deleted.toLocaleString();
+        document.getElementById('sizeFreed').textContent = fmtB(result.total_size_freed);
+        document.getElementById('dirsProcessed').textContent = result.directories_processed;
+        document.getElementById('cleanupStatus').textContent = result.success ? 'SUCCESS' : 'PARTIAL';
+        
+        // Handle errors
+        const errorsDiv = document.getElementById('cleanupErrors');
+        const errorsList = document.getElementById('errorsList');
+        const successMsg = document.getElementById('successMessage');
+        
+        if (result.errors && result.errors.length > 0) {
+            errorsDiv.classList.remove('hidden');
+            successMsg.classList.add('hidden');
+            errorsList.innerHTML = result.errors.map(error => `<div class="p-1 bg-[#1a1a1a] rounded text-xs">- ${error}</div>`).join('');
+        } else {
+            errorsDiv.classList.add('hidden');
+            if (result.success && result.total_deleted > 0) {
+                successMsg.classList.remove('hidden');
+            }
+        }
+        
+        // Highlight the space freed if significant
+        if (result.total_size_freed > 0) {
+            const sizeElement = document.getElementById('sizeFreed');
+            sizeElement.style.color = '#00ff41';
+            sizeElement.style.textShadow = '0 0 10px rgba(0,255,65,0.5)';
+            
+            // Add pulsing animation for large savings
+            if (result.total_size_freed > 100 * 1024 * 1024) { // > 100MB
+                sizeElement.style.animation = 'pulse 2s ease-in-out 3';
+            }
+        }
+        
+    } catch (error) {
+        console.error('Cleanup failed:', error);
+        
+        // Show error state
+        resultsDiv.classList.remove('hidden');
+        document.getElementById('filesDeleted').textContent = '0';
+        document.getElementById('sizeFreed').textContent = '0 B';
+        document.getElementById('dirsProcessed').textContent = '0';
+        document.getElementById('cleanupStatus').textContent = 'ERROR';
+        
+        const errorsDiv = document.getElementById('cleanupErrors');
+        const errorsList = document.getElementById('errorsList');
+        const successMsg = document.getElementById('successMessage');
+        errorsDiv.classList.remove('hidden');
+        successMsg.classList.add('hidden');
+        errorsList.innerHTML = `<div class="p-1 bg-[#1a1a1a] rounded text-xs">- Failed to connect to cleanup service: ${error.message}</div>`;
+    } finally {
+        // Reset button state
+        btn.innerHTML = '&#128465; CLEAR TEMP FILES';
+        btn.disabled = false;
+        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        cleanupRunning = false;
+        
+        // Results now persist until manually dismissed via close button
+    }
+}
+
 // Speed Test
 let speedTestRunning = false;
 
@@ -289,12 +378,12 @@ async function runSpeedTest() {
     
     // Update both buttons
     if (btn) {
-        btn.innerHTML = '⏳ TESTING...';
+        btn.innerHTML = '&#8987; TESTING...';
         btn.disabled = true;
         btn.classList.add('opacity-50', 'cursor-not-allowed');
     }
     if (btnNetwork) {
-        btnNetwork.innerHTML = '⏳ TESTING...';
+        btnNetwork.innerHTML = '&#8987; TESTING...';
         btnNetwork.disabled = true;
         btnNetwork.classList.add('opacity-50', 'cursor-not-allowed');
     }
