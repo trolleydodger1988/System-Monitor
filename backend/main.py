@@ -679,7 +679,7 @@ def disk_io():
 def clear_temp_files() -> Dict[str, any]:
     """
     Clear temporary files from common Windows temp directories.
-    
+
     Returns:
         dict: Results of the cleanup operation including files deleted and errors.
     """
@@ -696,31 +696,33 @@ def clear_temp_files() -> Dict[str, any]:
         Path(r"C:\Users\harritx9\AppData\Roaming\Code\CachedExtensionVSIXs"),
         Path(r"C:\Windows\SoftwareDistribution\Download"),
     ]
-    
+
     results = {
         "success": True,
         "total_deleted": 0,
         "total_size_freed": 0,
         "directories_processed": 0,
         "errors": [],
-        "details": []
+        "details": [],
     }
-    
+
     for temp_dir in temp_directories:
         try:
             if not temp_dir.exists():
-                results["details"].append({
-                    "directory": str(temp_dir),
-                    "status": "skipped",
-                    "reason": "Directory does not exist",
-                    "files_deleted": 0,
-                    "size_freed": 0
-                })
+                results["details"].append(
+                    {
+                        "directory": str(temp_dir),
+                        "status": "skipped",
+                        "reason": "Directory does not exist",
+                        "files_deleted": 0,
+                        "size_freed": 0,
+                    }
+                )
                 continue
-            
+
             files_deleted = 0
             size_freed = 0
-            
+
             # Get total size before cleanup
             for item in temp_dir.iterdir():
                 try:
@@ -730,7 +732,7 @@ def clear_temp_files() -> Dict[str, any]:
                         files_deleted += 1
                     elif item.is_dir():
                         # Calculate directory size before removal
-                        for sub_item in item.rglob('*'):
+                        for sub_item in item.rglob("*"):
                             if sub_item.is_file():
                                 try:
                                     size_freed += sub_item.stat().st_size
@@ -741,33 +743,37 @@ def clear_temp_files() -> Dict[str, any]:
                 except (PermissionError, FileNotFoundError, OSError) as e:
                     # Some files might be in use, log but continue
                     results["errors"].append(f"Could not delete {item}: {str(e)}")
-            
-            results["details"].append({
-                "directory": str(temp_dir),
-                "status": "completed",
-                "files_deleted": files_deleted,
-                "size_freed": size_freed
-            })
-            
+
+            results["details"].append(
+                {
+                    "directory": str(temp_dir),
+                    "status": "completed",
+                    "files_deleted": files_deleted,
+                    "size_freed": size_freed,
+                }
+            )
+
             results["total_deleted"] += files_deleted
             results["total_size_freed"] += size_freed
             results["directories_processed"] += 1
-            
+
         except Exception as e:
             error_msg = f"Error processing {temp_dir}: {str(e)}"
             results["errors"].append(error_msg)
-            results["details"].append({
-                "directory": str(temp_dir),
-                "status": "error",
-                "reason": str(e),
-                "files_deleted": 0,
-                "size_freed": 0
-            })
+            results["details"].append(
+                {
+                    "directory": str(temp_dir),
+                    "status": "error",
+                    "reason": str(e),
+                    "files_deleted": 0,
+                    "size_freed": 0,
+                }
+            )
             logger.error(error_msg)
-    
+
     if results["errors"]:
         results["success"] = len(results["errors"]) < len(temp_directories)
-    
+
     return results
 
 
@@ -775,13 +781,15 @@ def clear_temp_files() -> Dict[str, any]:
 def cleanup_temp_files():
     """
     API endpoint to clear temporary files.
-    
+
     Returns:
         dict: Results of the cleanup operation.
     """
     try:
         results = clear_temp_files()
-        logger.info(f"Temp cleanup completed: {results['total_deleted']} files, {results['total_size_freed']} bytes freed")
+        logger.info(
+            f"Temp cleanup completed: {results['total_deleted']} files, {results['total_size_freed']} bytes freed"
+        )
         return results
     except Exception as e:
         error_msg = f"Temp file cleanup failed: {str(e)}"
@@ -793,7 +801,7 @@ def cleanup_temp_files():
             "total_size_freed": 0,
             "directories_processed": 0,
             "errors": [error_msg],
-            "details": []
+            "details": [],
         }
 
 
@@ -1590,18 +1598,82 @@ async def serve_frontend():
     return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
 
 
+def get_cyber_banner() -> str:
+    """
+    Get a badass cyber-themed ASCII art banner for SysMon startup.
+
+    Returns:
+        str: The ASCII art banner string without color codes.
+    """
+    banner = """
+╔════════════════════════════════════════════════════════════════════════╗
+║        ███████╗██╗   ██╗███████╗███╗   ███╗ ██████╗ ███╗   ██╗         ║
+║        ██╔════╝╚██╗ ██╔╝██╔════╝████╗ ████║██╔═══██╗████╗  ██║         ║
+║        ███████╗ ╚████╔╝ ███████╗██╔████╔██║██║   ██║██╔██╗ ██║         ║
+║        ╚════██║  ╚██╔╝  ╚════██║██║╚██╔╝██║██║   ██║██║╚██╗██║         ║
+║        ███████║   ██║   ███████║██║ ╚═╝ ██║╚██████╔╝██║ ╚████║         ║
+║        ╚══════╝   ╚═╝   ╚══════╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝         ║
+║                                                                        ║
+║        ╔═╗╦ ╦╔╗ ╔═╗╦═╗  ╔═╗╦ ╦╔═╗╔╦╗╔═╗╔╦╗  ╔╦╗╔═╗╔╗╔╔╦╗╔╦╗╔═╗╦═╗      ║
+║        ║  ╚╦╝╠╩╗║╣ ╠╦╝  ╚═╗╚╦╝╚═╗ ║ ║╣ ║║║  ║║║║ ║║║║ ║  ║ ║ ║╠╦╝      ║
+║        ╚═╝ ╩ ╚═╝╚═╝╩╚═  ╚═╝ ╩ ╚═╝ ╩ ╚═╝╩ ╩  ╩ ╩╚═╝╝╚╝╚╩╝ ╩ ╚═╝╩╚═      ║
+║                                                                        ║
+║  ┌──────────────────────────────────────────────────────────────────┐  ║
+║  │    [*] Initializing neural interface...                          │  ║
+║  │    [*] Establishing quantum link to hardware sensors...          │  ║
+║  │    [*] Decrypting system telemetry streams...                    │  ║
+║  └──────────────────────────────────────────────────────────────────┘  ║
+╚════════════════════════════════════════════════════════════════════════╝
+"""
+    return banner
+
+
+def get_status_info() -> str:
+    """
+    Get system status information string.
+
+    Returns:
+        str: The status info string without color codes.
+    """
+    gpu_status = (
+        "✓ NVIDIA (GPUtil)"
+        if GPUTIL_AVAILABLE
+        else ("✓ Intel/AMD (WMI)" if WMI_AVAILABLE else "✗ Disabled")
+    )
+
+    ble_status = "✓ Active" if WINRT_AVAILABLE else "✗ Unavailable"
+
+    status_box = f"""
+┌──────────────────────────────────────────────┐
+│  ▸ GPU Monitoring    : {gpu_status:<22}│
+│  ▸ BLE Module        : {ble_status:<22}│
+│  ▸ WebSocket         :  Ready                │
+│  ▸ HTTP Server       :  localhost:9090       │
+├──────────────────────────────────────────────┤
+│  [ACCESS POINT] http://localhost:9090        │
+└──────────────────────────────────────────────┘
+"""
+    return status_box
+
+
 if __name__ == "__main__":
     import uvicorn
+    from terminaltexteffects.effects.effect_print import Print
+    from terminaltexteffects.utils.graphics import Color
 
-    print("\n" + "=" * 50)
-    print("🖥️  SysMon - System Monitor")
-    print("=" * 50)
-    gpu_status = (
-        "✅ NVIDIA (GPUtil)"
-        if GPUTIL_AVAILABLE
-        else ("✅ Intel/AMD (WMI)" if WMI_AVAILABLE else "❌ Disabled")
-    )
-    print(f"🎮 GPU Monitoring: {gpu_status}")
-    print("🌐 Open in browser: http://localhost:9090")
-    print("=" * 50 + "\n")
-    uvicorn.run(app, host="0.0.0.0", port=9090)
+    # Display banner with terminal text effect
+    banner = get_cyber_banner()
+    effect = Print(banner)
+    effect.effect_config.print_head_return_speed = 5
+    effect.effect_config.print_speed = 6
+    effect.effect_config.final_gradient_steps = 17
+    color1, color2 = Color("#9109F1"), Color("#04f510")
+    effect.effect_config.final_gradient_stops = (color1, color2)
+    with effect.terminal_output() as terminal:
+        for frame in effect:
+            terminal.print(frame)
+
+    # Print status info normally
+    print(get_status_info())
+
+    uvicorn.run(app, host="0.0.0.0", port=9090, log_level="warning")
