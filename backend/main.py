@@ -7,7 +7,7 @@ import sys
 import os
 import shutil
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Literal
 
 # Set CoInitialize flags to MTA (Multi Threaded Apartment) to satisfy Bleak requirements
 # This must be done before any library imports pythoncom (e.g. wmi)
@@ -1656,7 +1656,9 @@ def get_status_info() -> str:
     return status_box
 
 
-if __name__ == "__main__":
+def main(
+    log_level: Literal["debug", "info", "warning", "error", "critical"] = "warning",
+):
     import uvicorn
     from terminaltexteffects.effects.effect_print import Print
     from terminaltexteffects.utils.graphics import Color
@@ -1676,4 +1678,8 @@ if __name__ == "__main__":
     # Print status info normally
     print(get_status_info())
 
-    uvicorn.run(app, host="0.0.0.0", port=9090, log_level="warning")
+    uvicorn.run(app, host="0.0.0.0", port=9090, log_level=log_level)
+
+
+if __name__ == "__main__":
+    main("warning")
