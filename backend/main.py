@@ -8,6 +8,7 @@ import os
 import shutil
 from pathlib import Path
 from typing import List, Dict, Literal
+from contextlib import asynccontextmanager
 
 # Set CoInitialize flags to MTA (Multi Threaded Apartment) to satisfy Bleak requirements
 # This must be done before any library imports pythoncom (e.g. wmi)
@@ -175,7 +176,25 @@ import os
 
 os.environ["BLEAK_LOGGING"] = "1"
 
-app = FastAPI(title="SysMon")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Lifespan context manager for FastAPI app startup and shutdown events.
+
+    Args:
+        app (FastAPI): The FastAPI application instance.
+
+    Yields:
+        None: Control is yielded to the application during its lifetime.
+    """
+    # Startup
+    asyncio.create_task(rssi_updater())
+    yield
+    # Shutdown (cleanup can go here if needed)
+
+
+app = FastAPI(title="SysMon", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -1556,11 +1575,6 @@ async def ble_websocket_endpoint(websocket: WebSocket):
         ble_manager.disconnect(websocket)
 
 
-@app.on_event("startup")
-async def startup_event():
-    asyncio.create_task(rssi_updater())
-
-
 # Serve the frontend
 import os
 
@@ -1605,7 +1619,7 @@ def get_cyber_banner() -> str:
     Returns:
         str: The ASCII art banner string without color codes.
     """
-    banner = r"""
+    banner_2 = r"""
 ╔════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
 ║                                                                                                            ║
 ║           ______   _____      _____        ______      ______  _______           _____  _____   ______     ║
@@ -1633,6 +1647,32 @@ def get_cyber_banner() -> str:
 ║                    └──────────────────────────────────────────────────────────────────┘                    ║
 ╚════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 """
+    banner = r"""
+╔════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║                                                                                                            ║
+║           ______   _____      _____        ______      ______  _______           _____  _____   ______     ║
+║       ___|\     \ |\    \    /    /|   ___|\     \    |      \/       \     ____|\    \|\    \ |\     \    ║
+║      |    |\     \| \    \  /    / |  |    |\     \  /          /\     \   /     /\    \\\    \| \     \   ║
+║      |    |/____/||  \____\/    /  /  |    |/____/| /     /\   / /\     | /     /  \    \\|    \  \     |  ║
+║   ___|    \|   | | \ |    /    /  /___|    \|   | |/     /\ \_/ / /    /||     |    |    ||     \  |    |  ║
+║  |    \    \___|/   \|___/    /  /|    \    \___|/|     |  \|_|/ /    / ||     |    |    ||      \ |    |  ║
+║  |    |\     \          /    /  / |    |\     \   |     |       |    |  ||\     \  /    /||    |\ \|    |  ║
+║  |\ ___\|_____|        /____/  /  |\ ___\|_____|  |\____\       |____|  /| \_____\/____/ ||____||\_____/|  ║
+║  | |    |     |       |`    | /   | |    |     |  | |    |      |    | /  \ |    ||    | /|    |/ \|   ||  ║
+║   \|____|_____|       |_____|/     \|____|_____|   \|____|      |____|/    \|____||____|/ |____|   |___|/  ║
+║     \(    )/            )/           \(    )/        \(          )/          \(    )/      \(       )/     ║
+║      '    '             '             '    '          '          '            '    '        '       '      ║
+║                                                                                                            ║
+║          ____   ____ ___ ___    ____   __ __ _____ ___ __ __   __ __  __  __  _ _ _____ __  ___            ║    
+║         / _| `v' /  \ __| _ \ /' _| `v' /' _/_   _| __|  V  | |  V  |/__\|  \| | |_   _/__\| _ \           ║ 
+║        | \__`. .'| -< _|| v / `._`.`. .'`._`. | | | _|| \_/ | | \_/ | \/ | | ' | | | || \/ | v /           ║
+║         \__/ !_! |__/___|_|_\ |___/ !_! |___/ |_| |___|_| |_| |_| |_|\__/|_|\__|_| |_| \__/|_|_\           ║
+║                                                                                                            ║
+║                              ┌─────────────────────────────────────────────┐                               ║
+║                              │    [ACCESS POINT] http://localhost:9090     │                               ║
+║                              └─────────────────────────────────────────────┘                               ║
+╚════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+"""
     return banner
 
 
@@ -1651,15 +1691,22 @@ def get_status_info() -> str:
 
     ble_status = "✓ Active" if WINRT_AVAILABLE else "✗ Unavailable"
 
-    status_box = f"""
+    status_box_2 = f"""
 ┌──────────────────────────────────────────────┐
 │  ▸ GPU Monitoring    : {gpu_status:<22}│
 │  ▸ BLE Module        : {ble_status:<22}│
 │  ▸ WebSocket         :  Ready                │
-│  ▸ HTTP Server       :  localhost:9090       │
 ├──────────────────────────────────────────────┤
 │  [ACCESS POINT] http://localhost:9090        │
 └──────────────────────────────────────────────┘
+"""
+    status_box = f"""
+                               ┌─────────────────────────────────────────────┐
+                               │  ▸ GPU Monitoring    : {gpu_status:<21}│
+                               │  ▸ BLE Module        : {ble_status:<21}│
+                               │  ▸ WebSocket         :  Ready               │
+                               └─────────────────────────────────────────────┘
+
 """
     return status_box
 
@@ -1671,6 +1718,7 @@ def main(
 ):
     import uvicorn
     from terminaltexteffects.effects.effect_print import Print
+    from terminaltexteffects.effects.effect_decrypt import Decrypt
     from terminaltexteffects.utils.graphics import Color
 
     # Display banner with terminal text effect
@@ -1679,14 +1727,30 @@ def main(
     effect.effect_config.print_head_return_speed = 10
     effect.effect_config.print_speed = 9
     effect.effect_config.final_gradient_steps = 17
-    color1, color2 = Color("#9109F1"), Color("#04f510")
-    effect.effect_config.final_gradient_stops = (color1, color2)
+    color1, color2, color3 = Color("#9109F1"), Color("#04f510"), Color("#f5042c")
+    effect.effect_config.final_gradient_stops = (color1, color2, color3)
     with effect.terminal_output() as terminal:
         for frame in effect:
             terminal.print(frame)
 
-    # Print status info normally
-    print(get_status_info())
+    # Display status info with decrypt effect
+    status_info = get_status_info()
+    status_effect = Decrypt(status_info)
+    status_effect.effect_config.typing_speed = 10
+    status_effect.effect_config.ciphertext_colors = (
+        Color("#f5042c"),
+        Color("#9109F1"),
+        Color("#04f510"),
+    )
+    status_effect.effect_config.final_gradient_stops = (
+        Color("#f5042c"),
+        Color("#9109F1"),
+        Color("#04f510"),
+    )
+    status_effect.effect_config.final_gradient_steps = 16
+    with status_effect.terminal_output() as terminal:
+        for frame in status_effect:
+            terminal.print(frame)
 
     uvicorn.run(app, host="0.0.0.0", port=9090, log_level=log_level)
 
