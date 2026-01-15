@@ -17,7 +17,7 @@ A cyberpunk-styled real-time system monitoring dashboard built with FastAPI and 
 
 ## Screenshots
 
-*Coming soon*
+![Screenshot of SysMon GUI](backend/static/Screenshot_GUI.png)
 
 ## Quick Start
 
@@ -29,34 +29,34 @@ A cyberpunk-styled real-time system monitoring dashboard built with FastAPI and 
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/yourusername/SystemMonitor.git
    cd SystemMonitor
    ```
-
 2. **Create and activate virtual environment**
+
    ```bash
    python -m venv .venv
-   
+
    # Windows
    .\.venv\Scripts\Activate.ps1
-   
+
    # Linux/Mac
    source .venv/bin/activate
    ```
-
 3. **Install dependencies**
+
    ```bash
    pip install -r backend/requirements.txt
    ```
-
 4. **Run the server**
+
    ```bash
    python backend/main.py
    ```
-
 5. **Open in browser**
-   
+
    Navigate to http://localhost:8000
 
 ### One-liner (Windows PowerShell)
@@ -87,6 +87,7 @@ SystemMonitor/
 ## Tech Stack
 
 ### Backend
+
 - **FastAPI** - Async web framework with WebSocket support
 - **uvicorn** - ASGI server
 - **psutil** - System and process monitoring
@@ -94,35 +95,36 @@ SystemMonitor/
 - **WinRT** - Windows Runtime for BLE device enumeration
 
 ### Frontend
+
 - **Vanilla JavaScript** - No framework dependencies
 - **Tailwind CSS** (CDN) - Utility-first styling
 - **ApexCharts** - Real-time interactive charts
 
 ## API Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/system/overview` | GET | CPU, memory, swap, network stats |
-| `/api/system/info` | GET | Hostname, platform, uptime |
-| `/api/processes` | GET | Process list (sortable) |
-| `/api/processes/{pid}/kill` | POST | Kill a process |
-| `/api/processes/{pid}/suspend` | POST | Suspend a process |
-| `/api/processes/{pid}/resume` | POST | Resume a process |
-| `/api/network/stats` | GET | Network I/O stats |
-| `/api/network/connections` | GET | Active connections |
-| `/api/disks/partitions` | GET | Disk partition info |
-| `/ws/system` | WebSocket | Real-time system stats |
-| `/ws/ble` | WebSocket | BLE device updates |
+| Endpoint                         | Method    | Description                      |
+| -------------------------------- | --------- | -------------------------------- |
+| `/api/system/overview`         | GET       | CPU, memory, swap, network stats |
+| `/api/system/info`             | GET       | Hostname, platform, uptime       |
+| `/api/processes`               | GET       | Process list (sortable)          |
+| `/api/processes/{pid}/kill`    | POST      | Kill a process                   |
+| `/api/processes/{pid}/suspend` | POST      | Suspend a process                |
+| `/api/processes/{pid}/resume`  | POST      | Resume a process                 |
+| `/api/network/stats`           | GET       | Network I/O stats                |
+| `/api/network/connections`     | GET       | Active connections               |
+| `/api/disks/partitions`        | GET       | Disk partition info              |
+| `/ws/system`                   | WebSocket | Real-time system stats           |
+| `/ws/ble`                      | WebSocket | BLE device updates               |
 
 ## Theme Colors
 
-| Color | Hex | Usage |
-|-------|-----|-------|
-| Matrix Green | `#00ff41` | Primary, success |
-| Cyber Cyan | `#00d4ff` | Secondary, info |
-| Neon Magenta | `#ff00ff` | Accents |
-| Warning Orange | `#ffaa00` | Warnings |
-| Danger Red | `#ff3366` | Errors, danger |
+| Color          | Hex         | Usage            |
+| -------------- | ----------- | ---------------- |
+| Matrix Green   | `#00ff41` | Primary, success |
+| Cyber Cyan     | `#00d4ff` | Secondary, info  |
+| Neon Magenta   | `#ff00ff` | Accents          |
+| Warning Orange | `#ffaa00` | Warnings         |
+| Danger Red     | `#ff3366` | Errors, danger   |
 
 ## License
 
