@@ -1,5 +1,29 @@
 /* System Monitor - Custom Styles */
 
+/* ============================================
+   DASHBOARD WIDGET TEXT SIZES
+   Change these variables to resize all widget text at once
+   ============================================ */
+:root {
+  --widget-title-size: 0.92rem;      /* 14px - widget headers (CPU, MEMORY, etc.) */
+  --widget-label-size: 12px;         /* small labels (Download, Upload, etc.) */
+  --widget-button-size: 0.69rem;     /* ~10px - buttons inside widgets */
+  --widget-value-size: 1.125rem;     /* 18px - main values (network speeds, etc.) */
+  --widget-detail-size: 11px;        /* system stats panel rows */
+  --widget-tiny-size: 9px;           /* tiny labels (units like MB/s) */
+}
+
+/* Custom utility classes for dashboard widgets */
+.widget-title { font-size: var(--widget-title-size); }
+.widget-label { font-size: var(--widget-label-size); }
+button.widget-button { font-size: var(--widget-button-size) !important; }
+.widget-value { font-size: var(--widget-value-size); }
+.widget-detail { font-size: var(--widget-detail-size); }
+.widget-tiny { font-size: var(--widget-tiny-size); }
+
+/* Force speed test button specifically */
+#speedTestBtn { font-size: var(--widget-button-size) !important; }
+
 * { scrollbar-width: thin; scrollbar-color: #00ff41 #1a1a24; }
 body { font-family: 'JetBrains Mono', monospace; background: #0e0e14; color: #e4e4e7; }
 .cyber-card { background: linear-gradient(135deg, #12121a 0%, #0a0a0f 100%); border: 1px solid #27272a; border-radius: 8px; box-shadow: 0 0 20px rgba(0,255,65,0.05); transition: all 0.3s; }
