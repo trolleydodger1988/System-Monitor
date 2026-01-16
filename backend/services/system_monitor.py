@@ -23,6 +23,18 @@ def get_cpu() -> Dict[str, Any]:
     """
     freq = psutil.cpu_freq()
     ctx = psutil.cpu_stats()
+
+    # Count threads with error handling for terminated processes
+    thread_count = 0
+    for p in psutil.process_iter(["num_threads"]):
+        try:
+            num_threads = p.info.get("num_threads")
+            if num_threads:
+                thread_count += num_threads
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            # Process terminated or is inaccessible, skip it
+            continue
+
     return {
         "percent": psutil.cpu_percent(interval=None),
         "per_cpu": psutil.cpu_percent(percpu=True, interval=None),
@@ -34,11 +46,7 @@ def get_cpu() -> Dict[str, Any]:
         "ctx_switches": ctx.ctx_switches,
         "interrupts": ctx.interrupts,
         "processes": len(psutil.pids()),
-        "threads": sum(
-            p.num_threads()
-            for p in psutil.process_iter(["num_threads"])
-            if p.info.get("num_threads")
-        ),
+        "threads": thread_count,
     }
 
 
