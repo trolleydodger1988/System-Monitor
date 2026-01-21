@@ -57,6 +57,11 @@ file_watcher_clients: list[WebSocket] = []
 file_event_queue: asyncio.Queue = None
 _event_loop: asyncio.AbstractEventLoop = None
 
+# Terminal display state for dynamic resize handling
+_banner_height: int = 0
+_last_terminal_size: tuple[int, int] = (0, 0)
+_terminal_resize_running: bool = False
+
 
 def broadcast_file_event(event: FileChangeEvent):
     """
@@ -121,6 +126,51 @@ async def file_event_broadcaster():
 file_watcher_service.register_callback(broadcast_file_event)
 
 
+async def terminal_resize_monitor():
+    """
+    Background task that monitors terminal size and updates scrolling region.
+
+    Periodically checks if the terminal has been resized and adjusts the
+    ANSI scrolling region to keep the banner fixed at the top.
+    """
+    import shutil
+
+    global _last_terminal_size, _terminal_resize_running, _banner_height
+    _terminal_resize_running = True
+
+    logger.debug("Terminal resize monitor started")
+
+    while _terminal_resize_running:
+        try:
+            await asyncio.sleep(1.0)  # Check every second
+
+            if _banner_height == 0:
+                continue
+
+            term_size = shutil.get_terminal_size()
+            current_size = (term_size.columns, term_size.lines)
+
+            if current_size != _last_terminal_size and _last_terminal_size != (0, 0):
+                logger.debug(
+                    f"Terminal resized: {_last_terminal_size} -> {current_size}"
+                )
+
+                # Update scrolling region with new terminal height
+                scroll_start = _banner_height + 2
+                term_height = term_size.lines
+
+                # Save cursor position, update scroll region, restore cursor
+                sys.stdout.write("\033[s")  # Save cursor position
+                sys.stdout.write(f"\033[{scroll_start};{term_height}r")
+                sys.stdout.write("\033[u")  # Restore cursor position
+                sys.stdout.flush()
+
+            _last_terminal_size = current_size
+
+        except Exception as e:
+            logger.debug(f"Terminal resize monitor error: {e}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
@@ -132,11 +182,15 @@ async def lifespan(app: FastAPI):
     Yields:
         None: Control is yielded to the application during its lifetime.
     """
+    global _terminal_resize_running
+
     # Startup
     asyncio.create_task(rssi_updater())
     asyncio.create_task(file_event_broadcaster())
+    asyncio.create_task(terminal_resize_monitor())
     yield
-    # Shutdown - stop all file monitoring
+    # Shutdown
+    _terminal_resize_running = False
     file_watcher_service.stop_all()
 
 
@@ -328,53 +382,6 @@ def get_status_info() -> str:
     return status_box
 
 
-def _display_startup_effects() -> None:
-    """
-    Display the startup banner and status effects in a background thread.
-
-    This runs the terminal text effects asynchronously so the server can start
-    while the fancy visuals are still rendering.
-    """
-    from terminaltexteffects.effects.effect_print import Print
-    from terminaltexteffects.effects.effect_decrypt import Decrypt
-    from terminaltexteffects.utils.graphics import Color
-
-    try:
-        # Display banner with terminal text effect
-        banner = get_cyber_banner()
-        effect = Print(banner)
-        effect.effect_config.print_head_return_speed = 10
-        effect.effect_config.print_speed = 9
-        effect.effect_config.final_gradient_steps = 17
-        color1, color2, color3 = Color("#9109F1"), Color("#04f510"), Color("#f5042c")
-        effect.effect_config.final_gradient_stops = (color1, color2, color3)
-        with effect.terminal_output() as terminal:
-            for frame in effect:
-                terminal.print(frame)
-
-        # Display status info with decrypt effect
-        status_info = get_status_info()
-        status_effect = Decrypt(status_info)
-        status_effect.effect_config.typing_speed = 10
-        status_effect.effect_config.ciphertext_colors = (
-            Color("#f5042c"),
-            Color("#9109F1"),
-            Color("#04f510"),
-        )
-        status_effect.effect_config.final_gradient_stops = (
-            Color("#f5042c"),
-            Color("#9109F1"),
-            Color("#04f510"),
-        )
-        status_effect.effect_config.final_gradient_steps = 16
-        with status_effect.terminal_output() as terminal:
-            for frame in status_effect:
-                terminal.print(frame)
-    except Exception as e:
-        # Don't let visual effects crash the server
-        logger.warning(f"Startup effects failed: {e}")
-
-
 def main(
     log_level: Literal[
         "debug", "info", "warning", "error", "critical", "trace"
@@ -386,16 +393,92 @@ def main(
     Args:
         log_level: The log level for uvicorn (default: "warning").
     """
-    import threading
+    import shutil
     import uvicorn
 
-    # Start the fancy terminal effects in a background thread
-    # so the server can start immediately while the visuals render
-    effects_thread = threading.Thread(target=_display_startup_effects, daemon=True)
-    effects_thread.start()
+    # Set up fixed banner with scrolling region below it
+    _setup_fixed_banner()
 
-    uvicorn.run(app, host="0.0.0.0", port=9090, log_level=log_level)
+    try:
+        uvicorn.run(app, host="0.0.0.0", port=9090, log_level=log_level)
+    finally:
+        # Reset terminal scrolling region on exit
+        _reset_terminal()
+
+
+def _setup_fixed_banner() -> None:
+    """
+    Set up terminal with fixed banner at top and scrolling region below.
+
+    Uses ANSI escape codes to create a scrolling region so the banner
+    stays visible while logs scroll underneath.
+    """
+    import shutil
+    from terminaltexteffects.effects.effect_print import Print
+    from terminaltexteffects.utils.graphics import Color
+
+    global _banner_height, _last_terminal_size
+
+    try:
+        # Get terminal size
+        term_size = shutil.get_terminal_size()
+        term_height = term_size.lines
+        _last_terminal_size = (term_size.columns, term_size.lines)
+
+        banner = get_cyber_banner()
+        banner_lines = banner.strip().split("\n")
+        _banner_height = len(banner_lines)
+
+        # Clear screen and move cursor to home
+        sys.stdout.write("\033[2J\033[H")
+        sys.stdout.flush()
+
+        # Display banner with terminal text effect
+        effect = Print(banner)
+        effect.effect_config.print_head_return_speed = 10
+        effect.effect_config.print_speed = 9
+        effect.effect_config.final_gradient_steps = 17
+        color1, color2, color3 = Color("#9109F1"), Color("#04f510"), Color("#f5042c")
+        effect.effect_config.final_gradient_stops = (color1, color2, color3)
+        with effect.terminal_output() as terminal:
+            for frame in effect:
+                terminal.print(frame)
+
+        # Set scrolling region to start after banner (1-indexed)
+        scroll_start = _banner_height + 2
+        sys.stdout.write(f"\033[{scroll_start};{term_height}r")
+
+        # Move cursor to the start of scrolling region
+        sys.stdout.write(f"\033[{scroll_start};1H")
+
+        # Print status info in the scrolling region
+        status_info = get_status_info()
+        sys.stdout.write(status_info)
+
+        sys.stdout.flush()
+
+    except Exception as e:
+        # If fancy setup fails, just print normally
+        logger.warning(f"Fixed banner setup failed: {e}")
+        print(get_cyber_banner())
+        print(get_status_info())
+
+
+def _reset_terminal() -> None:
+    """Reset terminal scrolling region to full screen on exit."""
+    import shutil
+
+    try:
+        term_size = shutil.get_terminal_size()
+        # Reset scrolling region to full terminal
+        sys.stdout.write(f"\033[1;{term_size.lines}r")
+        # Move cursor to bottom
+        sys.stdout.write(f"\033[{term_size.lines};1H")
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+    except Exception:
+        pass
 
 
 if __name__ == "__main__":
-    main("warning")
+    main("info")
