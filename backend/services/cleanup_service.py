@@ -18,20 +18,37 @@ def clear_temp_files() -> Dict[str, Any]:
     Returns:
         dict: Results of the cleanup operation including files deleted and errors.
     """
+    # Get user profile dynamically
+    user_profile = Path.home()
+
     temp_directories = [
-        Path(r"C:\Users\harritx9\AppData\Local\Temp"),
-        Path(r"C:\Windows\Temp"),
-        Path(r"C:\Temp"),
-        Path(r"C:\Users\harritx9\AppData\Local\Microsoft\Windows\INetCache"),
-        Path(r"C:\Users\harritx9\AppData\Local\CrashDumps"),
-        Path(r"C:\Users\harritx9\AppData\Local\Microsoft\Windows\WebCache"),
-        Path(r"C:\Users\harritx9\AppData\Local\Google\Chrome\User Data\Default\Cache"),
-        Path(r"C:\Users\harritx9\AppData\Local\Microsoft\Edge\User Data\Default\Cache"),
-        Path(r"C:\Users\harritx9\AppData\Local\pip\cache"),
-        Path(r"C:\Users\harritx9\AppData\Roaming\Code\CachedExtensionVSIXs"),
-        Path(r"C:\Windows\SoftwareDistribution\Download"),
+        user_profile / "AppData" / "Local" / "Temp",
+        Path("C:/Windows/Temp"),
+        Path("C:/Temp"),
+        user_profile / "AppData" / "Local" / "Microsoft" / "Windows" / "INetCache",
+        user_profile / "AppData" / "Local" / "CrashDumps",
+        user_profile / "AppData" / "Local" / "Microsoft" / "Windows" / "WebCache",
+        user_profile
+        / "AppData"
+        / "Local"
+        / "Google"
+        / "Chrome"
+        / "User Data"
+        / "Default"
+        / "Cache",
+        user_profile
+        / "AppData"
+        / "Local"
+        / "Microsoft"
+        / "Edge"
+        / "User Data"
+        / "Default"
+        / "Cache",
+        user_profile / "AppData" / "Local" / "pip" / "cache",
+        user_profile / "AppData" / "Roaming" / "Code" / "CachedExtensionVSIXs",
+        Path("C:/Windows/SoftwareDistribution/Download"),
         # One Drive logs
-        Path(r"C:\Users\harritx9\AppData\Local\Microsoft\OneDrive\logs")
+        user_profile / "AppData" / "Local" / "Microsoft" / "OneDrive" / "logs",
     ]
 
     results = {
