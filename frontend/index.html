@@ -6,6 +6,7 @@
   <title>System Monitor</title>
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@vscode/codicons/dist/codicon.css" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
   <link rel="stylesheet" href="/styles.css">
@@ -15,7 +16,7 @@
     <!-- Sidebar -->
     <aside class="w-16 lg:w-52 bg-[#0a0a0f] border-r border-[#27272a] flex flex-col">
       <div class="h-14 flex items-center justify-center lg:justify-start lg:px-4 border-b border-[#27272a]">
-        <svg class="w-6 h-6 text-[#00ff41]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path></svg>
+        <i class="codicon codicon-server-environment text-[#00ff41]" style="font-size: 32px;"></i>
         <span class="hidden lg:block ml-2 text-[#00ff41] font-bold text-xl tracking-wider">SYSMON</span>
       </div>
       <nav class="flex-1 py-4 space-y-1">
@@ -313,86 +314,252 @@
 
         <!-- Storage Page -->
         <div id="page-storage" class="page hidden">
-          <h1 class="text-lg font-bold text-[#e4e4e7] mb-4">Storage</h1>
-          
-          <!-- Disk I/O Section -->
-          <div class="cyber-card p-4 mb-4">
-            <div class="flex items-center gap-2 mb-4">
-              <svg class="w-5 h-5 text-[#00ff41]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-              <span class="text-sm text-[#e4e4e7] font-medium">Disk I/O Activity</span>
-              <span class="ml-auto text-[10px] text-[#71717a]">Real-time read/write speeds</span>
-            </div>
-            <div id="diskIoGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-          </div>
-          
-          <!-- Temp File Cleanup -->
-          <div class="cyber-card p-4 mb-4">
-            <div class="flex items-center justify-between mb-4">
-              <div class="flex items-center gap-2">
-                <svg class="w-5 h-5 text-[#ff3366]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                <span class="text-sm text-[#e4e4e7] font-medium">Temporary Files Cleanup</span>
-              </div>
-              <button id="cleanupTempBtn" onclick="cleanupTempFiles()" class="text-xs text-[#ff3366] hover:text-[#e4e4e7] border border-[#ff3366] px-3 py-1 rounded hover:bg-[#ff3366]/10 transition-all">
-                &#128465; CLEAR TEMP FILES
+          <div class="flex items-center justify-between mb-4">
+            <h1 class="text-lg font-bold text-[#e4e4e7]">Storage</h1>
+            <!-- Storage Sub-tabs -->
+            <div class="flex items-center gap-2">
+              <button class="storage-tab active" data-tab="disk-overview" onclick="switchStorageTab('disk-overview')">
+                <i class="codicon codicon-database"></i>
+                <span>Disk Overview</span>
+              </button>
+              <button class="storage-tab" data-tab="file-log" onclick="switchStorageTab('file-log')">
+                <i class="codicon codicon-list-tree"></i>
+                <span>File Change Log</span>
               </button>
             </div>
-            <div class="text-xs text-[#71717a] mb-2">
-              Clears temporary files, cache, and other unnecessary data from system directories.
+          </div>
+          
+          <!-- Disk Overview Tab -->
+          <div id="storage-tab-disk-overview" class="storage-tab-content">
+            <!-- Disk I/O Section -->
+            <div class="cyber-card p-4 mb-4">
+              <div class="flex items-center gap-2 mb-4">
+                <svg class="w-5 h-5 text-[#00ff41]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                <span class="text-sm text-[#e4e4e7] font-medium">Disk I/O Activity</span>
+                <span class="ml-auto text-[10px] text-[#71717a]">Real-time read/write speeds</span>
+              </div>
+              <div id="diskIoGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
             </div>
-            <div id="cleanupResults" class="hidden">
-              <div class="bg-[#1a1a24] rounded-lg p-4 border border-[#27272a] relative">
-                <button onclick="document.getElementById('cleanupResults').classList.add('hidden')" class="absolute top-2 right-2 text-[#71717a] hover:text-[#e4e4e7] text-lg">&times;</button>
-                
-                <!-- Main Results Summary -->
-                <div class="mb-4">
-                  <div class="text-center mb-3">
-                    <div id="sizeFreed" class="text-3xl font-bold text-[#00ff41] mb-1">--</div>
-                    <div class="text-sm text-[#71717a]">Total Space Freed</div>
-                  </div>
+            
+            <!-- Temp File Cleanup -->
+            <div class="cyber-card p-4 mb-4">
+              <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                  <svg class="w-5 h-5 text-[#ff3366]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                  <span class="text-sm text-[#e4e4e7] font-medium">Temporary Files Cleanup</span>
                 </div>
-                
-                <!-- Detailed Stats -->
-                <div class="grid grid-cols-3 gap-4 text-center mb-4">
-                  <div>
-                    <div id="filesDeleted" class="text-lg font-bold text-[#00d4ff]">--</div>
-                    <div class="text-[10px] text-[#71717a]">Files Deleted</div>
+                <button id="cleanupTempBtn" onclick="cleanupTempFiles()" class="text-xs text-[#ff3366] hover:text-[#e4e4e7] border border-[#ff3366] px-3 py-1 rounded hover:bg-[#ff3366]/10 transition-all">
+                  &#128465; CLEAR TEMP FILES
+                </button>
+              </div>
+              <div class="text-xs text-[#71717a] mb-2">
+                Clears temporary files, cache, and other unnecessary data from system directories.
+              </div>
+              <div id="cleanupResults" class="hidden">
+                <div class="bg-[#1a1a24] rounded-lg p-4 border border-[#27272a] relative">
+                  <button onclick="document.getElementById('cleanupResults').classList.add('hidden')" class="absolute top-2 right-2 text-[#71717a] hover:text-[#e4e4e7] text-lg">&times;</button>
+                  
+                  <!-- Main Results Summary -->
+                  <div class="mb-4">
+                    <div class="text-center mb-3">
+                      <div id="sizeFreed" class="text-3xl font-bold text-[#00ff41] mb-1">--</div>
+                      <div class="text-sm text-[#71717a]">Total Space Freed</div>
+                    </div>
                   </div>
-                  <div>
-                    <div id="dirsProcessed" class="text-lg font-bold text-[#ffaa00]">--</div>
-                    <div class="text-[10px] text-[#71717a]">Directories</div>
+                  
+                  <!-- Detailed Stats -->
+                  <div class="grid grid-cols-3 gap-4 text-center mb-4">
+                    <div>
+                      <div id="filesDeleted" class="text-lg font-bold text-[#00d4ff]">--</div>
+                      <div class="text-[10px] text-[#71717a]">Files Deleted</div>
+                    </div>
+                    <div>
+                      <div id="dirsProcessed" class="text-lg font-bold text-[#ffaa00]">--</div>
+                      <div class="text-[10px] text-[#71717a]">Directories</div>
+                    </div>
+                    <div>
+                      <div id="cleanupStatus" class="text-lg font-bold text-[#ff00ff]">--</div>
+                      <div class="text-[10px] text-[#71717a]">Status</div>
+                    </div>
                   </div>
-                  <div>
-                    <div id="cleanupStatus" class="text-lg font-bold text-[#ff00ff]">--</div>
-                    <div class="text-[10px] text-[#71717a]">Status</div>
+                  
+                  <!-- Errors Section -->
+                  <div id="cleanupErrors" class="hidden">
+                    <div class="bg-[#2a1a1a] rounded p-3 border border-[#ff3366]/30">
+                      <div class="text-sm text-[#ff3366] mb-2 font-medium">Issues Encountered:</div>
+                      <div id="errorsList" class="text-xs text-[#a1a1aa] max-h-32 overflow-y-auto space-y-1"></div>
+                      <div class="text-[10px] text-[#71717a] mt-2 italic">These files/folders were likely in use and couldn't be deleted.</div>
+                    </div>
                   </div>
-                </div>
-                
-                <!-- Errors Section -->
-                <div id="cleanupErrors" class="hidden">
-                  <div class="bg-[#2a1a1a] rounded p-3 border border-[#ff3366]/30">
-                    <div class="text-sm text-[#ff3366] mb-2 font-medium">Issues Encountered:</div>
-                    <div id="errorsList" class="text-xs text-[#a1a1aa] max-h-32 overflow-y-auto space-y-1"></div>
-                    <div class="text-[10px] text-[#71717a] mt-2 italic">These files/folders were likely in use and couldn't be deleted.</div>
-                  </div>
-                </div>
-                
-                <!-- Success Message -->
-                <div id="successMessage" class="hidden">
-                  <div class="bg-[#1a2a1a] rounded p-2 border border-[#00ff41]/30 text-center">
-                    <div class="text-sm text-[#00ff41]">✓ Cleanup completed successfully!</div>
+                  
+                  <!-- Success Message -->
+                  <div id="successMessage" class="hidden">
+                    <div class="bg-[#1a2a1a] rounded p-2 border border-[#00ff41]/30 text-center">
+                      <div class="text-sm text-[#00ff41]">✓ Cleanup completed successfully!</div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
+            
+            <!-- Disk Partitions -->
+            <div class="cyber-card p-4">
+              <div class="flex items-center gap-2 mb-4">
+                <svg class="w-5 h-5 text-[#ff00ff]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path></svg>
+                <span class="text-sm text-[#e4e4e7] font-medium">Disk Partitions</span>
+              </div>
+              <div id="storageGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+            </div>
           </div>
           
-          <!-- Disk Partitions -->
-          <div class="cyber-card p-4">
-            <div class="flex items-center gap-2 mb-4">
-              <svg class="w-5 h-5 text-[#ff00ff]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path></svg>
-              <span class="text-sm text-[#e4e4e7] font-medium">Disk Partitions</span>
+          <!-- File Change Log Tab -->
+          <div id="storage-tab-file-log" class="storage-tab-content hidden">
+            <div class="cyber-card p-4 mb-4">
+              <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                  <i class="codicon codicon-list-tree text-[#00d4ff]"></i>
+                  <span class="text-sm text-[#e4e4e7] font-medium">File Change Log</span>
+                  <select id="fileLogDriveSelect" class="file-log-drive-select" onchange="switchFileLogDrive(this.value)">
+                    <!-- Populated by JS -->
+                  </select>
+                  <span class="file-log-live-indicator ml-2"></span>
+                  <span class="text-[10px] text-[#00ff41] ml-1">MONITORING</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button class="file-log-filter-btn active" data-filter="all">All</button>
+                  <button class="file-log-filter-btn" data-filter="new">New</button>
+                  <button class="file-log-filter-btn" data-filter="modified">Modified</button>
+                  <button class="file-log-filter-btn" data-filter="onedrive">OneDrive</button>
+                  <button class="file-log-filter-btn" data-filter="deleted">Deleted</button>
+                </div>
+              </div>
+              
+              <div class="file-log-grid">
+                <!-- Terminal Log -->
+                <div class="file-change-log" id="fileChangeLog">
+                  <!-- Entries populated by JS -->
+                </div>
+                
+                <!-- Summary Panel -->
+                <div class="file-log-summary-column">
+                  <!-- Quick Stats -->
+                  <div class="file-log-summary-card">
+                    <div class="file-log-card-title">
+                      <i class="codicon codicon-pulse file-log-card-icon icon-session"></i>
+                      SESSION SUMMARY
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                      <div class="file-log-stat-card">
+                        <div class="file-log-stat-value text-[#00ff41]" id="fileLogNewCount">0</div>
+                        <div class="file-log-stat-label">New Files</div>
+                      </div>
+                      <div class="file-log-stat-card">
+                        <div class="file-log-stat-value text-[#ffaa00]" id="fileLogModifiedCount">0</div>
+                        <div class="file-log-stat-label">Modified</div>
+                      </div>
+                      <div class="file-log-stat-card">
+                        <div class="file-log-stat-value text-[#0078d7]" id="fileLogOnedriveCount">0</div>
+                        <div class="file-log-stat-label">OneDrive Syncs</div>
+                      </div>
+                      <div class="file-log-stat-card">
+                        <div class="file-log-stat-value text-[#ff3366]" id="fileLogDeletedCount">0</div>
+                        <div class="file-log-stat-label">Deleted</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Size Summary -->
+                  <div class="file-log-summary-card">
+                    <div class="file-log-card-title">
+                      <i class="codicon codicon-cloud-download file-log-card-icon icon-transfer"></i>
+                      DATA TRANSFER
+                    </div>
+                    <div class="space-y-1">
+                      <div class="flex justify-between items-center">
+                        <span class="text-[12px] text-[#71717a]">Total New Files</span>
+                        <span class="text-[13px] text-[#00ff41] font-bold" id="fileLogNewSize">0 B</span>
+                      </div>
+                      <div class="flex justify-between items-center">
+                        <span class="text-[12px] text-[#71717a]">OneDrive Downloads</span>
+                        <span class="text-[13px] text-[#0078d7] font-bold" id="fileLogOnedriveSize">0 B</span>
+                      </div>
+                      <div class="flex justify-between items-center">
+                        <span class="text-[12px] text-[#71717a]">OneDrive Uploads</span>
+                        <span class="text-[13px] text-[#00d4ff] font-bold" id="fileLogOnedriveUpSize">0 B</span>
+                      </div>
+                      <div class="border-t border-[#27272a] pt-1 mt-1">
+                        <div class="flex justify-between items-center">
+                          <span class="text-[13px] text-[#a1a1aa]">Total Activity</span>
+                          <span class="text-[14px] text-[#e4e4e7] font-bold" id="fileLogTotalSize">0 B</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- OneDrive Status -->
+                  <div class="file-log-summary-card">
+                    <div class="file-log-card-title">
+                      <i class="codicon codicon-cloud file-log-card-icon icon-onedrive"></i>
+                      ONEDRIVE STATUS
+                    </div>
+                    <div class="space-y-1">
+                      <div class="flex items-center gap-2">
+                        <i class="codicon codicon-check text-[#00ff41]" style="font-size: 10px;"></i>
+                        <span class="text-[10px] text-[#e4e4e7]" id="fileLogOnedriveStatus">Monitoring...</span>
+                      </div>
+                      <div class="text-[9px] text-[#71717a]">
+                        Last activity: <span class="text-[#a1a1aa]" id="fileLogLastActivity">-</span>
+                      </div>
+                      <div class="text-[9px] text-[#71717a]">
+                        Pending: <span class="text-[#ffaa00]" id="fileLogPending">0 files</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Top Active Directories -->
+                  <div class="file-log-summary-card">
+                    <div class="file-log-card-title">
+                      <i class="codicon codicon-folder file-log-card-icon icon-paths"></i>
+                      MOST ACTIVE PATHS
+                    </div>
+                    <div class="space-y-1 text-[9px]" id="fileLogActivePaths">
+                      <div class="text-[#71717a]">No activity yet...</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div id="storageGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+            
+            <!-- Legend -->
+            <div class="cyber-card p-3">
+              <div class="flex items-center gap-8 text-[20px] flex-wrap">
+                <span class="text-[#71717a]">Legend:</span>
+                <div class="flex items-center gap-1">
+                  <i class="codicon codicon-new-file text-[#00ff41]" style="font-size: 20px;"></i>
+                  <span class="text-[#a1a1aa]">New File</span>
+                </div>
+                <div class="flex items-center gap-1">
+                  <i class="codicon codicon-edit text-[#ffaa00]" style="font-size: 20px;"></i>
+                  <span class="text-[#a1a1aa]">Modified</span>
+                </div>
+                <div class="flex items-center gap-1">
+                  <i class="codicon codicon-file-symlink-file text-[#ff00ff]" style="font-size: 20px;"></i>
+                  <span class="text-[#a1a1aa]">Moved</span>
+                </div>
+                <div class="flex items-center gap-1">
+                  <i class="codicon codicon-trash text-[#ff3366]" style="font-size: 20px;"></i>
+                  <span class="text-[#a1a1aa]">Deleted</span>
+                </div>
+                <div class="flex items-center gap-1">
+                  <i class="codicon codicon-cloud-download text-[#0078d7]" style="font-size: 20px;"></i>
+                  <span class="text-[#a1a1aa]">OneDrive Download</span>
+                </div>
+                <div class="flex items-center gap-1">
+                  <i class="codicon codicon-cloud-upload text-[#00d4ff]" style="font-size: 20px;"></i>
+                  <span class="text-[#a1a1aa]">OneDrive Sync</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

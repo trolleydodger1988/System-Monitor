@@ -69,3 +69,209 @@ body { font-family: 'JetBrains Mono', monospace; background: #0e0e14; color: #e4
 .log-err { color: #ff3366; }
 .live-indicator { width: 8px; height: 8px; background: #00ff41; border-radius: 50%; display: inline-block; animation: pulse-glow 2s infinite; }
 @keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 5px #00ff41; } 50% { box-shadow: 0 0 20px #00ff41; } }
+
+/* Storage Tab Styles */
+.storage-tab {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 12px;
+  background: transparent;
+  color: #71717a;
+  border: 1px solid #27272a;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.storage-tab:hover { color: #e4e4e7; border-color: #3f3f46; }
+.storage-tab.active { background: rgba(0,255,65,0.1); color: #00ff41; border-color: #00ff41; }
+.storage-tab-content { display: block !important; }
+.storage-tab-content.hidden { display: none !important; }
+
+/* File Change Log Styles */
+.file-log-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 16px;
+}
+.file-change-log {
+  background: #050508;
+  border: 1px solid #1a1a24;
+  border-radius: 8px;
+  padding: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  height: 600px;
+  max-height: 600px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #00ff41 #1a1a24;
+}
+.file-change-log::-webkit-scrollbar { width: 8px; }
+.file-change-log::-webkit-scrollbar-track { background: #1a1a24; border-radius: 4px; }
+.file-change-log::-webkit-scrollbar-thumb { background: #00ff41; border-radius: 4px; }
+.file-change-log::-webkit-scrollbar-thumb:hover { background: #00cc33; }
+
+.file-log-entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 8px;
+  border-bottom: 1px solid #1a1a24;
+  transition: background 0.15s;
+}
+.file-log-entry:hover { background: rgba(255,255,255,0.02); }
+.file-log-entry.type-new .file-log-icon { color: #00ff41; }
+.file-log-entry.type-modified .file-log-icon { color: #ffaa00; }
+.file-log-entry.type-moved .file-log-icon { color: #ff00ff; }
+.file-log-entry.type-deleted .file-log-icon { color: #ff3366; }
+.file-log-entry.type-onedrive .file-log-icon { color: #0078d7; }
+.file-log-entry.type-onedrive-sync .file-log-icon { color: #00d4ff; }
+
+.file-log-time { color: #52525b; font-size: 10px; min-width: 70px; }
+.file-log-icon { font-size: 14px; min-width: 18px; text-align: center; }
+.file-log-path { color: #a1a1aa; flex: 1; word-break: break-all; }
+.file-log-path.file-log-path-link { text-decoration: none; cursor: pointer; transition: color 0.15s; }
+.file-log-path.file-log-path-link:hover { color: #00d4ff; }
+.file-log-path.file-log-path-link:hover .folder { color: #00d4ff; }
+.file-log-path.file-log-path-link:hover .filename { color: #00d4ff; }
+.file-log-path .folder { color: #71717a; }
+.file-log-path .filename { color: #e4e4e7; }
+.file-log-size { color: #00d4ff; font-size: 10px; min-width: 60px; text-align: right; }
+.file-log-tag {
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.file-log-tag.onedrive {
+  background: rgba(0,120,215,0.2);
+  color: #0078d7;
+  border: 1px solid rgba(0,120,215,0.4);
+}
+
+.file-log-summary-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 600px;
+}
+.file-log-summary-card {
+  background: #0a0a0f;
+  border: 1px solid #27272a;
+  border-radius: 8px;
+  padding: 10px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.file-log-summary-card:first-child {
+  flex: 1.4;
+}
+.file-log-summary-card:nth-child(2) {
+  flex: 1.2;
+}
+.file-log-summary-card:nth-child(3) {
+  flex: 0.7;
+}
+.file-log-summary-card:last-child {
+  flex: 1.3;
+}
+.file-log-stat-card {
+  background: #12121a;
+  border-radius: 6px;
+  padding: 6px;
+  text-align: center;
+}
+.file-log-stat-value { font-size: 18px; font-weight: bold; }
+.file-log-stat-label { font-size: 10px; color: #71717a; margin-top: 1px; }
+
+/* Summary card title and icon styles */
+.file-log-card-title {
+  font-size: 12px;
+  color: #a1a1aa;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.file-log-card-icon {
+  font-size: 14px;
+}
+.file-log-card-icon.icon-session { color: #00ff41; }
+.file-log-card-icon.icon-transfer { color: #00d4ff; }
+.file-log-card-icon.icon-onedrive { color: #0078d7; }
+.file-log-card-icon.icon-paths { color: #ffaa00; }
+
+/* Compact text for summary cards */
+.file-log-summary-card .text-xs { font-size: 10px; }
+.file-log-summary-card .text-sm { font-size: 11px; }
+.file-log-summary-card .text-\\[10px\\] { font-size: 9px; }
+.file-log-summary-card .space-y-2 { gap: 4px; }
+.file-log-summary-card .mb-3 { margin-bottom: 8px; }
+
+.file-log-filter-btn {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 10px;
+  background: transparent;
+  color: #71717a;
+  border: 1px solid #27272a;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.file-log-filter-btn:hover { color: #e4e4e7; border-color: #3f3f46; }
+.file-log-filter-btn.active { background: rgba(0,212,255,0.1); color: #00d4ff; border-color: #00d4ff; }
+
+.file-log-drive-select {
+  background: #0a0a0f;
+  border: 1px solid #27272a;
+  border-radius: 4px;
+  color: #00ff41;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 4px 8px;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s;
+}
+.file-log-drive-select:hover { border-color: #00ff41; }
+.file-log-drive-select:focus { border-color: #00ff41; box-shadow: 0 0 8px rgba(0,255,65,0.3); }
+.file-log-drive-select option {
+  background: #0a0a0f;
+  color: #e4e4e7;
+}
+
+.file-log-live-indicator {
+  width: 8px;
+  height: 8px;
+  background: #00ff41;
+  border-radius: 50%;
+  display: inline-block;
+  animation: pulse-glow 2s infinite;
+}
+
+.file-log-active-path {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid #1a1a24;
+}
+.file-log-active-path:last-child { border-bottom: none; }
+
+.file-log-path-link {
+  color: #a1a1aa;
+  text-decoration: none;
+  transition: color 0.15s, text-decoration 0.15s;
+  cursor: pointer;
+}
+.file-log-path-link:hover {
+  color: #00d4ff;
+  text-decoration: underline;
+}

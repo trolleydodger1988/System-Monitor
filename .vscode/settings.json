@@ -8,24 +8,6 @@
     "VIRTUAL_ENV": "${workspaceFolder}\\.venv",
     "PATH": "${workspaceFolder}\\.venv\\Scripts;${env:PATH}"
   },
-  "terminal.integrated.defaultProfile.windows": "PowerShell",
-  "terminal.integrated.profiles.windows": {
-    "PowerShell": {
-      "source": "PowerShell",
-      "args": [
-        "-NoExit",
-        "-Command",
-        "& '${workspaceFolder}\\.venv\\Scripts\\Activate.ps1'"
-      ]
-    },
-    "Command Prompt": {
-      "path": "${env:windir}\\System32\\cmd.exe",
-      "args": [
-        "/k",
-        "${workspaceFolder}\\.venv\\Scripts\\activate.bat"
-      ]
-    }
-  },
   "terminal.integrated.cwd": "${workspaceFolder}",
   "files.associations": {
     "*.py": "python"

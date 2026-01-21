@@ -14,3 +14,4 @@ winrt-Windows.Devices.Bluetooth.Rfcomm>=3.0.0
 winrt-Windows.Devices.Enumeration>=3.0.0
 winrt-Windows.Foundation>=3.0.0
 terminaltexteffects>=0.11.0
+watchdog>=6.0.0

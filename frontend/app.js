@@ -66,7 +66,7 @@ function connectWS() {
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
   ws = new WebSocket(`${protocol}//${location.host}/ws/system`);
   ws.onopen = () => {
-    document.getElementById('connStatus').innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path></svg><span class="text-[10px]">LIVE</span>`;
+    document.getElementById('connStatus').innerHTML = `<i class="codicon codicon-broadcast"></i><span class="text-[10px]">LIVE</span>`;
     document.getElementById('connStatus').className = 'flex items-center gap-1.5 text-[#00ff41]';
   };
   ws.onmessage = (e) => { const msg = JSON.parse(e.data); if (msg.type === 'system_stats') updateDashboard(msg.data); };
@@ -1190,6 +1190,522 @@ async function checkStreamingDeviceAvailability() {
     } catch (e) {
         console.error("Error checking streaming device availability:", e);
     }
+}
+
+// =====================
+// FILE CHANGE LOG
+// =====================
+let fileLogEntries = [];
+let fileLogStats = { new: 0, modified: 0, onedrive: 0, deleted: 0, newSize: 0, onedriveDownSize: 0, onedriveUpSize: 0, deletedSize: 0 };
+let fileLogActiveFilter = 'all';
+let fileLogPathCounts = {};
+let fileLogUpdateInterval = null;
+let fileLogSelectedDrive = 'C:';
+let fileLogAvailableDrives = [];
+let fileLogWebSocket = null;
+let fileLogIsMonitoring = false;
+
+/**
+ * Switches between Storage sub-tabs (Disk Overview / File Change Log).
+ *
+ * @param {string} tabId - The tab ID to switch to ('disk-overview' or 'file-log').
+ */
+function switchStorageTab(tabId) {
+    document.querySelectorAll('.storage-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tabId);
+    });
+    document.querySelectorAll('.storage-tab-content').forEach(content => {
+        content.classList.toggle('hidden', content.id !== `storage-tab-${tabId}`);
+    });
+    
+    if (tabId === 'file-log') {
+        initFileChangeLog();
+    }
+}
+
+/**
+ * Populates the drive selector dropdown with available drives.
+ */
+async function populateDriveSelector() {
+    const select = document.getElementById('fileLogDriveSelect');
+    if (!select) return;
+    
+    try {
+        const response = await fetch('/api/disks/partitions');
+        const disks = await response.json();
+        
+        fileLogAvailableDrives = disks.map(d => d.device.replace('\\', ''));
+        
+        select.innerHTML = fileLogAvailableDrives.map(drive => 
+            `<option value="${drive}" ${drive === fileLogSelectedDrive ? 'selected' : ''}>${drive}\\</option>`
+        ).join('');
+    } catch (e) {
+        console.error('Failed to fetch drives:', e);
+        select.innerHTML = '<option value="C:">C:\\</option>';
+    }
+}
+
+/**
+ * Switches the file log to monitor a different drive.
+ *
+ * @param {string} drive - The drive letter with colon (e.g., 'C:', 'D:').
+ */
+async function switchFileLogDrive(drive) {
+    // Stop monitoring old drive
+    if (fileLogIsMonitoring) {
+        await stopFileMonitoring(fileLogSelectedDrive);
+    }
+    
+    fileLogSelectedDrive = drive;
+    
+    // Clear current data
+    fileLogEntries = [];
+    fileLogStats = { new: 0, modified: 0, onedrive: 0, deleted: 0, newSize: 0, onedriveDownSize: 0, onedriveUpSize: 0, deletedSize: 0 };
+    fileLogPathCounts = {};
+    
+    updateFileLogSummary();
+    renderFileLog();
+    
+    // Start monitoring new drive
+    await startFileMonitoring(drive);
+}
+
+/**
+ * Starts file monitoring for a drive.
+ *
+ * @param {string} drive - The drive letter with colon.
+ */
+async function startFileMonitoring(drive) {
+    try {
+        const response = await fetch('/api/file-monitor/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ drive: drive })
+        });
+        
+        if (response.ok) {
+            fileLogIsMonitoring = true;
+            console.log(`Started monitoring ${drive}`);
+        } else {
+            console.error(`Failed to start monitoring ${drive}`);
+        }
+    } catch (e) {
+        console.error('Error starting file monitoring:', e);
+    }
+}
+
+/**
+ * Stops file monitoring for a drive.
+ *
+ * @param {string} drive - The drive letter with colon.
+ */
+async function stopFileMonitoring(drive) {
+    try {
+        await fetch('/api/file-monitor/stop', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ drive: drive })
+        });
+        fileLogIsMonitoring = false;
+        console.log(`Stopped monitoring ${drive}`);
+    } catch (e) {
+        console.error('Error stopping file monitoring:', e);
+    }
+}
+
+/**
+ * Connects to the file monitor WebSocket.
+ */
+function connectFileLogWebSocket() {
+    if (fileLogWebSocket && fileLogWebSocket.readyState === WebSocket.OPEN) {
+        return;
+    }
+    
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws/file-monitor`;
+    
+    fileLogWebSocket = new WebSocket(wsUrl);
+    
+    fileLogWebSocket.onopen = () => {
+        console.log('File monitor WebSocket connected');
+        // Start a periodic ping to keep connection alive
+        if (window.fileLogPingInterval) clearInterval(window.fileLogPingInterval);
+        window.fileLogPingInterval = setInterval(() => {
+            if (fileLogWebSocket && fileLogWebSocket.readyState === WebSocket.OPEN) {
+                fileLogWebSocket.send('ping');
+            }
+        }, 15000);
+    };
+    
+    fileLogWebSocket.onmessage = (event) => {
+        console.log('File monitor received:', event.data);
+        try {
+            const message = JSON.parse(event.data);
+            console.log('Parsed message:', message);
+            if (message.type === 'file_change') {
+                console.log('Handling file change event');
+                handleFileChangeEvent(message.data);
+            }
+            // Ignore ping responses
+        } catch (e) {
+            console.error('Error parsing file monitor message:', e);
+        }
+    };
+    
+    fileLogWebSocket.onclose = () => {
+        console.log('File monitor WebSocket closed, reconnecting in 3s...');
+        if (window.fileLogPingInterval) clearInterval(window.fileLogPingInterval);
+        setTimeout(connectFileLogWebSocket, 3000);
+    };
+    
+    fileLogWebSocket.onerror = (error) => {
+        console.error('File monitor WebSocket error:', error);
+    };
+}
+
+/**
+ * Handles a file change event from the WebSocket.
+ *
+ * @param {Object} data - The file change event data.
+ */
+function handleFileChangeEvent(data) {
+    // Map backend event type to our display type
+    let displayType = data.event_type;
+    if (data.is_onedrive && (displayType === 'new' || displayType === 'modified')) {
+        displayType = 'onedrive';
+    }
+    
+    const entry = {
+        timestamp: new Date(data.timestamp),
+        path: data.path,
+        type: displayType,
+        size: data.size,
+        isOneDrive: data.is_onedrive
+    };
+    
+    fileLogEntries.push(entry);
+    if (fileLogEntries.length > 500) fileLogEntries.shift();
+    
+    updateFileLogStats(entry);
+    updateFileLogSummary();
+    renderFileLog(true);
+}
+
+/**
+ * Initializes the file change log with real-time monitoring.
+ */
+function initFileChangeLog() {
+    // Populate drive selector
+    populateDriveSelector();
+    
+    // Connect to WebSocket
+    connectFileLogWebSocket();
+    
+    // Start monitoring the selected drive
+    if (!fileLogIsMonitoring) {
+        startFileMonitoring(fileLogSelectedDrive);
+    }
+    
+    renderFileLog();
+    
+    // Set up filter buttons
+    document.querySelectorAll('.file-log-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            fileLogActiveFilter = btn.dataset.filter;
+            document.querySelectorAll('.file-log-filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderFileLog();
+        });
+    });
+}
+
+/**
+ * Generates initial mock file log data.
+ */
+function generateMockFileLogData() {
+    const drive = fileLogSelectedDrive;
+    const mockPaths = [
+        { path: `${drive}\\Users\\User\\OneDrive\\Documents\\Reports\\Q4_2024_Summary.xlsx`, type: 'onedrive', size: 245760 },
+        { path: `${drive}\\Users\\User\\AppData\\Local\\Temp\\cache_1234.tmp`, type: 'new', size: 8192 },
+        { path: `${drive}\\Program Files\\MyApp\\config.json`, type: 'modified', size: 2048 },
+        { path: `${drive}\\Users\\User\\OneDrive\\Pictures\\vacation_001.jpg`, type: 'onedrive', size: 3145728 },
+        { path: `${drive}\\Windows\\Temp\\setup_log.txt`, type: 'deleted', size: 4096 },
+        { path: `${drive}\\Users\\User\\Documents\\project\\src\\main.py`, type: 'modified', size: 15360 },
+        { path: `${drive}\\Users\\User\\OneDrive\\Work\\presentation.pptx`, type: 'onedrive-sync', size: 524288 },
+        { path: `${drive}\\Users\\User\\Downloads\\installer_v2.exe`, type: 'new', size: 52428800 },
+        { path: `${drive}\\Users\\User\\AppData\\Roaming\\app\\settings.xml`, type: 'modified', size: 1024 },
+        { path: `${drive}\\Users\\User\\OneDrive\\Documents\\notes.txt`, type: 'onedrive', size: 512 },
+    ];
+    
+    const now = Date.now();
+    mockPaths.forEach((item, i) => {
+        const entry = {
+            timestamp: new Date(now - (mockPaths.length - i) * 30000),
+            path: item.path,
+            type: item.type,
+            size: item.size,
+            isOneDrive: item.type.startsWith('onedrive')
+        };
+        fileLogEntries.push(entry);
+        updateFileLogStats(entry);
+    });
+    
+    updateFileLogSummary();
+}
+
+/**
+ * Adds a random file log entry for the mock simulation.
+ */
+function addRandomFileLogEntry() {
+    const drive = fileLogSelectedDrive;
+    const types = ['new', 'modified', 'deleted', 'onedrive', 'onedrive-sync'];
+    const paths = [
+        `${drive}\\Users\\User\\OneDrive\\Documents`,
+        `${drive}\\Users\\User\\Downloads`,
+        `${drive}\\Windows\\Temp`,
+        `${drive}\\Users\\User\\AppData\\Local`,
+        `${drive}\\Users\\User\\Documents\\Projects`,
+        `${drive}\\Users\\User\\OneDrive\\Work`,
+        `${drive}\\Program Files`
+    ];
+    const extensions = ['.txt', '.docx', '.xlsx', '.json', '.tmp', '.log', '.py', '.js', '.png', '.pdf'];
+    
+    const type = types[Math.floor(Math.random() * types.length)];
+    const basePath = paths[Math.floor(Math.random() * paths.length)];
+    const ext = extensions[Math.floor(Math.random() * extensions.length)];
+    const filename = `file_${Math.floor(Math.random() * 9999)}${ext}`;
+    
+    const entry = {
+        timestamp: new Date(),
+        path: `${basePath}\\${filename}`,
+        type: type,
+        size: Math.floor(Math.random() * 10485760) + 512,
+        isOneDrive: type.startsWith('onedrive') || basePath.includes('OneDrive')
+    };
+    
+    fileLogEntries.push(entry);
+    if (fileLogEntries.length > 100) fileLogEntries.shift();
+    
+    updateFileLogStats(entry);
+    updateFileLogSummary();
+    renderFileLog(true);
+}
+
+/**
+ * Updates the file log statistics counters.
+ *
+ * @param {Object} entry - The file log entry.
+ */
+function updateFileLogStats(entry) {
+    if (entry.type === 'new') {
+        fileLogStats.new++;
+        fileLogStats.newSize += entry.size;
+    } else if (entry.type === 'modified') {
+        fileLogStats.modified++;
+    } else if (entry.type === 'deleted') {
+        fileLogStats.deleted++;
+        fileLogStats.deletedSize += entry.size;
+    } else if (entry.type === 'onedrive') {
+        fileLogStats.onedrive++;
+        fileLogStats.onedriveDownSize += entry.size;
+    } else if (entry.type === 'onedrive-sync') {
+        fileLogStats.onedrive++;
+        fileLogStats.onedriveUpSize += entry.size;
+    }
+    
+    // Track path counts
+    const folder = entry.path.substring(0, entry.path.lastIndexOf('\\'));
+    fileLogPathCounts[folder] = (fileLogPathCounts[folder] || 0) + 1;
+}
+
+/**
+ * Updates the file log summary panel.
+ */
+function updateFileLogSummary() {
+    // Check if we're on the file log tab (elements exist)
+    const newCountEl = document.getElementById('fileLogNewCount');
+    if (!newCountEl) return; // Not on file log tab, skip update
+    
+    newCountEl.textContent = fileLogStats.new;
+    document.getElementById('fileLogModifiedCount').textContent = fileLogStats.modified;
+    document.getElementById('fileLogOnedriveCount').textContent = fileLogStats.onedrive;
+    document.getElementById('fileLogDeletedCount').textContent = fileLogStats.deleted;
+    
+    document.getElementById('fileLogNewSize').textContent = formatFileSize(fileLogStats.newSize);
+    document.getElementById('fileLogOnedriveSize').textContent = formatFileSize(fileLogStats.onedriveDownSize);
+    document.getElementById('fileLogOnedriveUpSize').textContent = formatFileSize(fileLogStats.onedriveUpSize);
+    document.getElementById('fileLogTotalSize').textContent = formatFileSize(
+        fileLogStats.newSize + fileLogStats.onedriveDownSize + fileLogStats.onedriveUpSize
+    );
+    
+    // OneDrive status
+    const lastOD = fileLogEntries.find(e => e.isOneDrive);
+    const lastActivityEl = document.getElementById('fileLogLastActivity');
+    if (lastOD && lastActivityEl) {
+        lastActivityEl.textContent = formatTime(lastOD.timestamp);
+    }
+    const statusEl = document.getElementById('fileLogOnedriveStatus');
+    if (statusEl) statusEl.textContent = 'Connected & Syncing';
+    const pendingEl = document.getElementById('fileLogPending');
+    if (pendingEl) pendingEl.textContent = `${Math.floor(Math.random() * 5)} files`;
+    
+    // Top active paths
+    const sortedPaths = Object.entries(fileLogPathCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+    
+    const activePathsEl = document.getElementById('fileLogActivePaths');
+    if (activePathsEl && sortedPaths.length > 0) {
+        activePathsEl.innerHTML = sortedPaths.map(([path, count]) => `
+            <div class="file-log-active-path">
+                <a href="#" class="file-log-path-link truncate" style="max-width: 200px;" title="${path}" onclick="openFolder('${path.replace(/\\/g, '\\\\')}'); return false;">${shortenPath(path)}</a>
+                <span class="text-[#00d4ff]">${count} changes</span>
+            </div>
+        `).join('');
+    }
+}
+
+/**
+ * Opens a folder in Windows File Explorer.
+ *
+ * @param {string} path - The folder path to open.
+ */
+async function openFolder(path) {
+    try {
+        const response = await fetch('/api/open-folder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: path })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            console.error('Failed to open folder:', error.detail);
+        }
+    } catch (e) {
+        console.error('Error opening folder:', e);
+    }
+}
+
+/**
+ * Renders the file log entries.
+ *
+ * @param {boolean} isNewEntry - Whether this render is due to a new entry being added.
+ */
+function renderFileLog(isNewEntry = false) {
+    const container = document.getElementById('fileChangeLog');
+    if (!container) return;
+    
+    // Check if user is at the bottom before re-rendering
+    const scrollThreshold = 30; // pixels from bottom to consider "at bottom"
+    const wasAtBottom = (container.scrollHeight - container.scrollTop - container.clientHeight) <= scrollThreshold;
+    
+    let filtered = fileLogEntries;
+    if (fileLogActiveFilter !== 'all') {
+        if (fileLogActiveFilter === 'onedrive') {
+            filtered = fileLogEntries.filter(e => e.type.startsWith('onedrive'));
+        } else {
+            filtered = fileLogEntries.filter(e => e.type === fileLogActiveFilter);
+        }
+    }
+    
+    container.innerHTML = filtered.map(entry => {
+        const icon = getFileLogIcon(entry.type);
+        const typeClass = entry.type.startsWith('onedrive') ? 
+            (entry.type === 'onedrive-sync' ? 'type-onedrive-sync' : 'type-onedrive') : 
+            `type-${entry.type}`;
+        
+        const pathParts = entry.path.split('\\');
+        const filename = pathParts.pop();
+        const folder = pathParts.join('\\');
+        const folderEscaped = folder.replace(/\\/g, '\\\\');
+        
+        const tag = entry.isOneDrive ? '<span class="file-log-tag onedrive">OneDrive</span>' : '';
+        
+        return `
+            <div class="file-log-entry ${typeClass}">
+                <span class="file-log-time">${formatTime(entry.timestamp)}</span>
+                <i class="codicon ${icon} file-log-icon"></i>
+                <a href="#" class="file-log-path file-log-path-link" title="Open folder: ${escapeHtml(folder)}" onclick="openFolder('${folderEscaped}'); return false;">
+                    <span class="folder">${escapeHtml(folder)}\\</span><span class="filename">${escapeHtml(filename)}</span>
+                </a>
+                <span class="file-log-size">${formatFileSize(entry.size)}</span>
+                ${tag}
+            </div>
+        `;
+    }).join('');
+    
+    // Auto-scroll to bottom only if user was already at bottom, or on initial load
+    if (wasAtBottom || !isNewEntry) {
+        container.scrollTop = container.scrollHeight;
+    }
+}
+
+/**
+ * Gets the codicon class for a file log entry type.
+ *
+ * @param {string} type - The entry type.
+ * @returns {string} The codicon class.
+ */
+function getFileLogIcon(type) {
+    switch (type) {
+        case 'new': return 'codicon-new-file';
+        case 'modified': return 'codicon-edit';
+        case 'deleted': return 'codicon-trash';
+        case 'moved': return 'codicon-file-symlink-file';
+        case 'onedrive': return 'codicon-cloud-download';
+        case 'onedrive-sync': return 'codicon-cloud-upload';
+        default: return 'codicon-file';
+    }
+}
+
+/**
+ * Formats a file size in bytes to a human-readable string.
+ *
+ * @param {number} bytes - The size in bytes.
+ * @returns {string} The formatted size string.
+ */
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+/**
+ * Formats a timestamp to a time string.
+ *
+ * @param {Date} date - The date object.
+ * @returns {string} The formatted time string.
+ */
+function formatTime(date) {
+    return date.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+/**
+ * Shortens a file path for display.
+ *
+ * @param {string} path - The full path.
+ * @returns {string} The shortened path.
+ */
+function shortenPath(path) {
+    if (path.length <= 35) return path;
+    const parts = path.split('\\');
+    if (parts.length <= 3) return path;
+    return parts[0] + '\\...\\' + parts.slice(-2).join('\\');
+}
+
+/**
+ * Escapes HTML special characters.
+ *
+ * @param {string} text - The text to escape.
+ * @returns {string} The escaped text.
+ */
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 // Init

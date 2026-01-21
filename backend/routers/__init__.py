@@ -10,6 +10,7 @@ from .storage import router as storage_router
 from .cleanup import router as cleanup_router
 from .ble import router as ble_router
 from .bluetooth import router as bluetooth_router
+from .file_monitor import router as file_monitor_router
 
 __all__ = [
     "system_router",
@@ -20,4 +21,5 @@ __all__ = [
     "cleanup_router",
     "ble_router",
     "bluetooth_router",
+    "file_monitor_router",
 ]

@@ -43,9 +43,82 @@ from routers import (
     cleanup_router,
     ble_router,
     bluetooth_router,
+    file_monitor_router,
 )
 from routers.ble import rssi_updater, ble_websocket_endpoint
 from services.ble_manager import ble_manager
+from services.file_watcher import file_watcher_service, FileChangeEvent
+
+
+# --- File Watcher WebSocket Management ---
+# Defined here so lifespan can access it
+
+file_watcher_clients: list[WebSocket] = []
+file_event_queue: asyncio.Queue = None
+_event_loop: asyncio.AbstractEventLoop = None
+
+
+def broadcast_file_event(event: FileChangeEvent):
+    """
+    Queue a file change event for broadcasting to WebSocket clients.
+
+    Args:
+        event: The file change event to broadcast.
+    """
+    global file_event_queue, _event_loop
+    logger.debug(f"broadcast_file_event called: {event.event_type} - {event.path}")
+    logger.debug(
+        f"Queue exists: {file_event_queue is not None}, Loop exists: {_event_loop is not None}, Clients: {len(file_watcher_clients)}"
+    )
+    if file_event_queue is not None and _event_loop is not None:
+        try:
+            # Thread-safe way to put item in asyncio queue from sync context
+            _event_loop.call_soon_threadsafe(file_event_queue.put_nowait, event)
+            logger.debug("Event queued successfully")
+        except Exception as e:
+            logger.error(f"Error queueing file event: {e}")
+
+
+async def file_event_broadcaster():
+    """
+    Background task that broadcasts file events to all connected WebSocket clients.
+    """
+    global file_event_queue, _event_loop
+    file_event_queue = asyncio.Queue()
+    _event_loop = asyncio.get_running_loop()
+
+    logger.info("File event broadcaster started")
+
+    while True:
+        try:
+            event = await file_event_queue.get()
+            message = {"type": "file_change", "data": event.to_dict()}
+
+            logger.debug(
+                f"Broadcaster got event: {event.event_type} - {event.path}, sending to {len(file_watcher_clients)} clients"
+            )
+
+            # Send to all connected clients
+            disconnected = []
+            for client in file_watcher_clients:
+                try:
+                    await client.send_json(message)
+                    logger.debug("Sent to client successfully")
+                except Exception as e:
+                    logger.error(f"Failed to send to client: {e}")
+                    disconnected.append(client)
+
+            # Remove disconnected clients
+            for client in disconnected:
+                if client in file_watcher_clients:
+                    file_watcher_clients.remove(client)
+
+        except Exception as e:
+            logger.error(f"Error broadcasting file event: {e}")
+
+
+# Register the broadcast callback
+file_watcher_service.register_callback(broadcast_file_event)
 
 
 @asynccontextmanager
@@ -61,8 +134,10 @@ async def lifespan(app: FastAPI):
     """
     # Startup
     asyncio.create_task(rssi_updater())
+    asyncio.create_task(file_event_broadcaster())
     yield
-    # Shutdown (cleanup can go here if needed)
+    # Shutdown - stop all file monitoring
+    file_watcher_service.stop_all()
 
 
 app = FastAPI(title="SysMon", lifespan=lifespan)
@@ -85,9 +160,38 @@ app.include_router(storage_router)
 app.include_router(cleanup_router)
 app.include_router(ble_router)
 app.include_router(bluetooth_router)
+app.include_router(file_monitor_router)
 
 
 # --- WebSocket Endpoints ---
+
+
+@app.websocket("/ws/file-monitor")
+async def ws_file_monitor_endpoint(ws: WebSocket):
+    """
+    WebSocket endpoint for real-time file change streaming.
+
+    Args:
+        ws: WebSocket connection.
+    """
+    await ws.accept()
+    file_watcher_clients.append(ws)
+    try:
+        while True:
+            # Use receive with timeout to keep connection alive but not block forever
+            try:
+                await asyncio.wait_for(ws.receive_text(), timeout=30.0)
+            except asyncio.TimeoutError:
+                # Send a ping to check if client is still alive
+                try:
+                    await ws.send_json({"type": "ping"})
+                except Exception:
+                    break
+    except WebSocketDisconnect:
+        pass
+    finally:
+        if ws in file_watcher_clients:
+            file_watcher_clients.remove(ws)
 
 
 @app.websocket("/ws/system")

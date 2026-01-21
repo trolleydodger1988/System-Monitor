@@ -30,6 +30,8 @@ def clear_temp_files() -> Dict[str, Any]:
         Path(r"C:\Users\harritx9\AppData\Local\pip\cache"),
         Path(r"C:\Users\harritx9\AppData\Roaming\Code\CachedExtensionVSIXs"),
         Path(r"C:\Windows\SoftwareDistribution\Download"),
+        # One Drive logs
+        Path(r"C:\Users\harritx9\AppData\Local\Microsoft\OneDrive\logs")
     ]
 
     results = {
